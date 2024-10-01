@@ -1,0 +1,142 @@
+---
+title: "Titanic Problem"
+author: "Lucas Welch"
+date: "2023-01-02"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(modelr)
+```
+
+```{r}
+train_titanic <- read_csv("train_titanic.csv")
+test_titanic <- read_csv("test_titanic.csv")
+```
+
+```{r}
+train_titanic  |> 
+  summarize(mean(Survived))
+```
+
+This would be the baseline solution
+
+```{r}
+baseline_solution <- 
+  test_titanic |>
+  select(PassengerId) |>
+  mutate(Survived = 0)
+```
+
+To submit to Kaggle, you need to write this out as a csv file
+
+```{r}
+write_csv(baseline_solution, "baseline_solution.csv")
+```
+
+When submitted to Kaggle, I got a predictive accuracy of 62.6% 
+
+```{r}
+train_titanic |>
+  group_by(Sex) |>
+  summarize(mean(Survived))
+```
+
+```{r}
+gender_solution <- 
+  test_titanic |> 
+  select(PassengerId, Sex) |>
+  mutate(Survived = as.integer(Sex == "female")) |>
+  select(-Sex)
+```
+
+```{r}
+gender_train <- 
+  train_titanic |> 
+  select(PassengerId,Survived, Sex) |>
+  mutate(pred = as.integer(Sex == "female")) |>
+  select(-Sex)
+```
+
+```{r}
+gender_train |>
+  summarize(mean(pred == Survived))
+```
+```{r}
+train_titanic |>
+  mutate(Title = str_replace(Name, "[^,]+, ([^\\.]+).+", "\\1")) |>
+  select(Survived, Title) -> titles
+```
+
+Finds the pattern then replaces it with everything in the parenthesis
+
+```{r}
+titles |>
+  group_by(Title) |>
+  summarize(mean(Survived))
+```
+
+Finds the percentage of titles that survived
+
+```{r}
+titles |>
+  group_by(Title) |>
+  summarize(count = n()) |>
+  arrange(desc(count))
+```
+
+Finds the integer rather than percentage in desc order
+
+Now, I will build a conditional forest model
+
+A decision tree partitions the state space
+
+```{r}
+library(partykit)
+```
+
+```{r}
+cf_model1 <- cforest(Survived ~ Fare, data = train_titanic)
+```
+
+```{r}
+train_pred1 <- train_titanic |>
+  add_predictions(cf_model1)
+train_pred1
+```
+
+```{r}
+train_pred1 |>
+  summarize(mean(as.integer(pred >= 0.5) == Survived))
+```
+
+
+```{r}
+train_titanic |>
+  mutate(Ind_Sex = as.integer(Sex == "female")) -> train_titanic_ind_sex
+```
+
+```{r}
+cf_model2 <- cforest(Survived ~ Ind_Sex + Fare, data = train_titanic_ind_sex)
+```
+
+```{r}
+train_pred2 <- 
+  train_titanic_ind_sex |>
+  add_predictions(cf_model2)
+```
+
+```{r}
+train_pred2 |>
+  summarize(mean(as.integer(pred >= 0.5) == Survived))
+```
+
+
+Considerations :
+  1. Accuracy - the goal is to make the predictive accuracy as high as possible. 
+  2. Simplicity - the goal is to make the model as simple as possible by having few variables, and few interactions between variables
+
+
+
+

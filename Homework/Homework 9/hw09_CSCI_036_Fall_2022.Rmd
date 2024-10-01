@@ -1,0 +1,399 @@
+---
+title: 'Homework 09 CSCI 036 Solutions'
+author: 'Lucas Welch'
+output: 
+  html_document:
+    css:  ../homework-style.css
+  pdf_document:
+    includes:
+      in_header:  "../homework-style.tex"
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+#Color Format
+colFmt = function(x,color){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\textcolor{",color,"}{",x,"}",sep="")
+  else if(outputFormat == 'html')
+    paste("<font color='",color,"'>",x,"</font>",sep="")
+  else
+    x
+}
+#Box Format
+boxFmt = function(x){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\framebox{\\hspace*{1em} ", x, "}")
+  else if(outputFormat == 'html')
+    paste("<span class=\"boxed\">", x , "</span>")
+  else
+    x
+}
+library(tidyverse)
+```
+
+Due:  Friday, 2022-11-18
+
+# Instructions
+
+Please box your answers.  For numerical answers, this can be done using something like \( \boxed{34} \).  For text answers, this can be done using something like \( \boxed{\text{My answer}} \).   The output of a code chunk is automatically boxed, so no need to do more.
+
+#### Opening a connection to a local database
+
+The first few problems involve the datasets contained as SQLite files that can be downloaded from the class website.  First the [RSQLite]{class=PackageName} must be loaded to get the driver for an SQLite database.
+
+```{r}
+library(RSQLite)
+```
+
+Next a connection must be made.  Once `iris.sqlite` is downloaded from the website into the same directory as your homework .Rmd file, and the working directory in R Studio is also set to this place, the following opens a connection to this file.
+```{r}
+con_iris <- dbConnect(SQLite(), "iris.sqlite")
+```
+
+Note that the driver is a function, and so `SQLite()` ends with a left and right parenthesis.
+
+Once the file is open, SQL commands can be sent using the [dbGetQuery]{class=KeywordTok} command in R.
+```{r}
+dbGetQuery(con_iris, "SELECT * FROM iris LIMIT 10")
+```
+
+Or if instead of putting `{r}` after the initial three backticks in the code chunk, put `{sql, connetion = con_iris}` instead, an SQL query can be formed directly.
+
+```{sql, connection = con_iris}
+SELECT *
+  FROM iris
+```
+
+Note that because several variable names contain a period, they need to be enclosed in either quotes or backticks to work properly.
+
+```{sql, connection = con_iris}
+  SELECT `Petal.Length`
+    FROM iris
+ORDER BY `Petal.Length`
+```
+
+\newpage
+
+:::: {.problem data-latex=""}
+Write an SQL query for the `iris` SQL database that does the following:
+
+* Sorts the observations by order of the petal width in descending order.
+
+* Keeps only the top five observations.
+
+* Returns the petal length, petal width, and species data for these observations.
+::::
+
+```{sql, connection = con_iris}
+  SELECT `Petal.Length`, `Petal.Width`, `Species` 
+    FROM iris
+ORDER BY `Petal.Width` DESC
+  LIMIT 5 
+```
+
+:::: {.solution data-latex=""}
+
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+a. Write an SQL query to find the setosa flower observations with petal length greater than 1.5 cm.  Return only the petal length values.
+
+b. Write an SQL query that first finds the setosa flower observations with petal length greater than 1.5 cm.  Return the sample average of the petal length values.
+::::
+
+:::: {.solution data-latex=""}
+
+a. 
+```{sql, connection = con_iris}
+  SELECT `Petal.Length`, `Species` 
+    FROM iris
+WHERE Species = "setosa" 
+  ORDER BY `Petal.Length` < 1.6
+```
+b. 
+```{sql, connection = con_iris}
+  SELECT `Petal.Length`, `Species`,
+          AVG(`Petal.Length`)
+    FROM iris
+WHERE Species = "setosa" 
+  ORDER BY `Petal.Length` < 1.5
+```
+
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+a. Write an SQL query for the `iris` SQL database that does the following:  returns the largest sepal length and the species that attains it.
+
+b. Write an SQL query for the `iris` SQL database that does the following:  returns the smallest sepal length and the species that attains it.
+
+::::
+
+:::: {.solution data-latex=""}
+
+a. 
+```{sql, connection = con_iris}
+  SELECT `Petal.Length`, `Species` 
+    FROM iris
+  ORDER BY `Petal.Length` DESC
+  LIMIT 1 
+```
+
+b. 
+```{sql, connection = con_iris}
+SELECT `Petal.Length`, `Species`
+FROM iris
+ORDER BY `Petal.Length` ASC
+LIMIT 1
+```
+
+OR 
+
+```{sql, connection = con_iris}
+SELECT MAX(`Petal.Length`), `Species`
+FROM iris
+
+```
+```{sql, connection = con_iris}
+SELECT MIN(`Petal.Length`), `Species`
+FROM iris
+
+```
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+Write an SQL query for the `iris` SQL database that does the following:  for each different species, return the largest sepal length under the variable name `max_sepal_length` together with the species name.
+::::
+
+:::: {.solution data-latex=""}
+
+```{sql, connection = con_iris}
+SELECT MAX(`Sepal.Length`) AS max_sepal_length, `Species` 
+FROM iris
+GROUP BY `Species`
+```
+
+
+::::
+
+Now that the homework is done with the iris database, close the connection.
+```{r}
+dbDisconnect(con_iris)
+```
+
+#### Opening a connection
+
+The Relational Dataset Repository contains many datasets that you can access.  We will open up a connection using the latest R package for accessing MySQL style databases, called `RMariaDB`.
+
+```{r, warning = FALSE, message = FALSE}
+# install.packages("RMariaDB")
+library(RMariaDB)
+```
+
+With this in place, you can open a connection to the datasets in the relational dataset repository.  The questions from this week's homework use the Northwind database.  You can open a connection to this database for testing with:
+```{r}
+# Connect to my-db as defined in ~/.my.cnf
+con_nw <- dbConnect(MariaDB(), 
+                 host = "relational.fit.cvut.cz",
+                 username = "guest",
+                 password = "relational",
+                 port = "3306",
+                 dbname = "northwind")
+```
+
+Important note:  normally you would never hard code a password into your .Rmd file.  This is only being done here because it is a guest account with an open password.  
+
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Using the Northwind database, do the following.
+
+a.  Using the `Employees` table from the Northwind database, give an SQL command that reports back observations that are not based in the US.  Reports should include the employee ID, the first name, last name, and country of the employee.
+
+b.  Using the `Customers` table to find all customers where the value of the Fax variable is `NULL`.  The report should include the customer ID together with the fax number value.
+::::
+
+:::: {.solution data-latex=""}
+
+a. 
+```{sql, connection = con_nw}
+SELECT EmployeeID, FirstName, LastName, Country
+  FROM Employees
+  WHERE Country != "USA"
+ 
+```
+
+b. 
+```{sql, connection = con_nw}
+SELECT *
+  FROM Customers
+  WHERE Fax IS NULL
+```
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+Perform an inner join of the `TerritoryDescription` factor from the `Territories` table to the `EmployeeID` and `TerritoryID` factors of the `EmployeeTerritories` table.
+::::
+
+:::: {.solution}
+
+```{sql, connection = con_nw}
+SELECT Territories.TerritoryDescription, EmployeeTerritories.EmployeeID, EmployeeTerritories.TerritoryID
+FROM Territories, EmployeeTerritories
+```
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+The `CONCAT` function can be used within `SELECT` to combine strings and factors.  For instance, consider the following:
+```{sql, connection = con_nw}
+SELECT EmployeeID, CONCAT(FirstName, " ", LastName) AS Name
+  FROM Employees
+```
+
+Using the `FirstName`, `LastName`, and `Extension` factors of the `Employees` table, write a MySQL query that creates a report that consists of a single factor `Contact` that contains values like:  `Nancy Davolio can be reached at x5467.`
+::::
+
+:::: {.solution}
+
+```{sql, connection = con_nw}
+SELECT EmployeeID, CONCAT(FirstName, " ", LastName, "can be reahced at ", Extension) AS Contact 
+  FROM Employees
+```
+
+
+
+::::
+
+\newpage
+
+:::: {.problems data-latex=""}
+Write an SQL query where the reported data consists of observations that consist of the CustomerID together with the number of orders that customer made. Only include those customers that ordered at least 20 times, and sort the results by the number of orders in descending order.
+::::
+
+:::: {.solution}
+
+
+```{sql, connection = con_nw}
+SELECT COUNT(OrderID) AS Orders, CustomerID 
+FROM Orders
+GROUP BY CustomerID
+HAVING Orders >= 20 
+```
+
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+There are no filtering join commands in SQL.  Instead, a *subquery* is used.  The idea is to create an initial query that has some conditions, and then use `WHERE` in the original table to match these observations.
+
+For instance, consider the `Products` table.
+```{sql, connection = con_nw}
+SELECT ProductID, ProductName, CategoryID
+  FROM Products
+```
+
+Now consider the `Categories` table.
+```{sql, connection = con_nw}
+SELECT CategoryID, CategoryName
+  FROM Categories
+```
+To find the products that are beverages, first I need to look up what the category ID is for beverages in the `Categories` table.
+```{sql, connection = con_nw}
+SELECT CategoryID
+  FROM Categories
+ WHERE CategoryName = "Beverages"
+```
+
+Next, I use the results from that query in the `Products` table to only keep observations that have that category code.
+
+```{sql, connection = con_nw}
+SELECT ProductName
+  FROM Products
+ WHERE CategoryID = (SELECT CategoryID
+  		                 FROM Categories
+			                WHERE CategoryName = 'Beverages')
+
+```
+
+
+Write a single SQL query that creates a report that shows the name of all products that are in the `"Seafood"` category.
+::::
+
+:::: {.solution}
+```{sql, connection = con_nw}
+SELECT ProductName
+  FROM Products
+ WHERE CategoryID = (SELECT CategoryID
+  		                 FROM Categories
+			                WHERE CategoryName = 'Seafood')
+```
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+The `Customers` dataset contains company names together with unique ID's.
+```{sql, connection = con_nw}
+SELECT CustomerID, CompanyName, ContactName
+  FROM Customers
+```
+
+The `Orders` dataset uses `CustomerID` to state which company made an order.
+```{sql, connection = con_nw}
+SELECT OrderID, CustomerID, EmployeeID, OrderDate
+  FROM Orders
+```
+
+Create a query that generates a report with two columns:  one for the company name, and one for the number of orders placed by that company after 1996-12-31 (call this second column `Num_orders`.)
+::::
+
+:::: {.solution data-latex=""}
+
+```{sql, connection = con_nw}
+SELECT Customers.CompanyName, COUNT(OrderID) AS Num_orders 
+FROM Customers 
+JOIN Orders ON Customers.CustomerID = Orders.CustomerID 
+WHERE OrderDate > "1996-12-31"
+GROUP BY Customers.CompanyName
+```
+
+
+
+
+
+::::
+
+Now that this part of the homework is complete, close the connection.
+
+```{r}
+dbDisconnect(con_nw)
+```
+
+

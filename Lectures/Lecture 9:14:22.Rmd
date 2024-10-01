@@ -1,0 +1,97 @@
+---
+title: "Lecture 9/14/22"
+author: "Lucas Welch"
+date: "2022-09-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+example <- tribble(
+  ~height, ~age, 
+  120, 14,
+  150, 16, 
+  210, 25, 
+)
+```
+
+```{r}
+vgsales <- read_csv("vgsalesGlobalmod.csv", skip = 3, col_types = "d??d????")
+```
+```{r}
+x <- c(10, 8, 12 ,17)
+x >= c(9, 10, 11, 12)
+```
+
+```{r}
+x >= c(13, 9)
+```
+
+Stay away from this formulation, even though it technically  "works" 
+
+```{r}
+vgsales |> 
+  filter(Year >= 500)
+```
+
+Logical operators
+
+Logical "AND" is TRUE if every boolean connected by logical "AND" are TRUE
+/[
+/textsf{T} /wedge  = /textsf{T}
+/]
+
+Logical "OR" is TRUE if at least one of the booleans connected is TRUE
+
+NA (Not avaiblable)
+
+NA is kind of contagious
+
+Logcial "AND" and "OR" in R 
+
+Logical "AND" symbol is '&' 
+
+Vector Opoerations: 
+  These comparisons , '==' , ' >=' , '>', '&' and '|' 
+  are vector operations
+  
+What is we want for filter: 
+  Non vector equivalents for logical "AND" and logical "OR" are '&&' and '||'. DONT USE THESE FOR FILTER
+
+```{r}
+c(TRUE, FALSE, FALSE) & c(TRUE, FALSE, TRUE)
+```
+
+  
+For if and while statement you would use: 
+```{r}
+c(TRUE, FALSE, FALSE) && c(TRUE, FALSE, TRUE)
+```
+

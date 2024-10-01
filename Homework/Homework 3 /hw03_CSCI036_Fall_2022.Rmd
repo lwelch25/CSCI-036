@@ -1,0 +1,398 @@
+---
+title: 'Homework 03 CSCI 036 Solutions'
+author: 'Lucas Welch'
+output: 
+  html_document:
+    css:  ../homework-style.css
+  pdf_document:
+    includes:
+      in_header:  "../homework-style.tex"
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(kableExtra)
+library(readxl)
+opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+#Color Format
+colFmt = function(x,color){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\textcolor{",color,"}{",x,"}",sep="")
+  else if(outputFormat == 'html')
+    paste("<font color='",color,"'>",x,"</font>",sep="")
+  else
+    x
+}
+#Box Format
+boxFmt = function(x){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\framebox{\\hspace*{1em} ", x, "}")
+  else if(outputFormat == 'html')
+    paste("<span class=\"boxed\">", x , "</span>")
+  else
+    x
+}
+library(tidyverse)
+```
+
+Due:  Friday, 2022-09-23
+
+# Instructions
+
+Please box your answers.  For numerical answers, this can be done using something like \( \boxed{34} \).  For text answers, this can be done using something like \( \boxed{\text{My answer}} \).   The output of a code chunk is automatically boxed, so no need to do more.
+
+This homework uses four files.  Each of the files should be placed in a subdirectory called `datasets`.  The four files needed are:
+
+* `annual-enterprise-survey-2019-financial-year-provisional-csv.csv`
+
+* `CMC_Sequence_Declarations_2020-09-23.csv`
+
+* `example.xlsx`
+
+* `cancer.dta`
+
+\newpage
+
+::::: {.problem data-latex=""}   
+The *newline character* `\n` can be used to tell R that a new line is starting in a string.  That allows us to directly create a comma separated file to play with.  Consider the following code.
+```{r}
+df <- 
+  read_csv(
+    "1, Mole, Moly\n
+     2, Rat, Ratty\n
+     3, Mr. Toad, Toady\n
+     4, Mr. Badger, Badger"
+  )
+```
+Modify this code by changing parameters to [read_csv]{class=KeywordTok} so that the first row of data does not get turned into header names, and remove the first column of data.
+:::::
+
+:::: {.solution data-latex=""}
+
+```{r}
+df <- 
+  read_csv(
+    "1, Mole, Moly\n
+     2, Rat, Ratty\n
+     3, Mr. Toad, Toady\n
+     4, Mr. Badger, Badger",
+    col_names = FALSE
+  ) |>
+  select(-1)
+df
+```
+
+
+
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""}   
+What command would you give R to read a file called `abc.txt` where values in the data are separated with
+"|"?
+:::::
+
+:::: {.solution data-latex=""}
+
+\(\boxed{\text{I would give the command delim = "|" to abc.txt}}\)
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""}
+Explain for each of the following strings why it does not give a valid inline CSV file.
+
+```{r, results = "hide", warning = FALSE, message = FALSE}
+read_csv("a,b\n1,2,3\n4,5,6")
+read_csv("a,b,c\n1,2\n1,2,3,4")
+read_csv("a,b\n\"1")
+read_csv("a,b\n1,2\na,b")
+read_csv("a;b\n1;3")
+```
+:::::
+
+:::: {.solution data-latex=""}
+
+```{r}
+#1 read_csv("a,b\n1,2,3\n4,5,6")
+#2 read_csv("a,b,c\n1,2\n1,2,3,4")
+#3 read_csv("a,b\n\"1")
+#4 read_csv("a,b\n1,2\na,b")
+#5 read_csv("a;b\n1;3")
+```
+
+#1 Revised
+```{r}
+read_csv("a,b\n1,2\n3,4\n5,6")
+```
+\(\boxed{\text{#1 Explanation: The rows in the csv were not shifted to the next row with "\n" command making the numbers combine instead of seperating}}\)
+#2 Revised
+```{r}
+read_csv("a,b,c\n1,2,1\n2,3,4")
+```
+\(\boxed{\text{#Explanation: Given that this read_csv file has 3 columns(abc), there were only 2 numbers in in row1 while there are 4 numbers in row2. By shifting the \n command to the right of the text, we can have the ahcracter align up so that we get a 3x3 tibble.}}\)
+
+#3 Revised
+```{r}
+read_csv("a,b\n1")
+```
+\(\boxed{\text{#Explanation: There was an uneven amount of quotations(3) and an extra "\" making the csv file unreadable. If just the quotations were taken out, the tibble would look give a value of \001. When both the quotations and the "\" are removed we get a 1 value for column a and nothing for column b. }}\)
+
+#4 Revised
+```{r}
+read_csv("a,b\n1,2")
+```
+\(\boxed{\text{#Explanation: There was another row added to the csv file after \n1,2 stating \na,b which is the same as the column name. This is not a value, its a column character, which is incorrect. To fix this, just delete the /na,b portion of the code}}\)
+
+#5 Revised
+```{r}
+read_csv("a,b\n1,3")
+```
+\(\boxed{\text{#Explanation: This csv file seperated its numbers with semicolons instead of commas. This made col_a, row_1 "1:3", which is incorrect because there should be no colon in col_a and the number 3 should be in col_b. To fix this we can either replace the semicolon with a comma or use the read_delim command if we have a bigger dataset.}}\) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+::::
+
+\newpage
+
+:::: {.problem}
+Consider the following vector of numbers.
+```{r}
+x <- c(15, 20, 14, 8, 7)
+```
+
+a. Write an R command that returns a vector of boolean values that are TRUE if and only if the component of the vector equals 8 exactly.
+
+b. Write an R command that returns a vector of boolean values that are TRUE if and only if the component of the vector is greater than 9 and less than 16.
+
+c. Write an R command that returns a vector of boolean values that are TRUE if and only if the component of the vector is at most 7 or at least 14.
+::::
+
+:::: {.solution}
+
+A. 
+```{r}
+c(8) == x
+```
+
+B.
+```{r}
+c(9) < x & c(16) > x
+```
+
+C. 
+```{r}
+c(7) > x | c(14) < x
+```
+
+
+
+
+
+
+
+
+
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""}
+Consider the CSV file `datasets/CMC_Sequence_Declarations_2020-09-23.csv`.
+
+a. Load this into a data set `sequences`, dealing with any comments in the file and labeling the first variable `sequence` and the second `number_of_records`.
+
+b. Filter out (remove) those sequences with fewer than 10 records.
+:::::
+
+:::: {.solution data-latex=""}
+
+A.
+```{r}
+sequences <- read_csv("datasets/CMC_Sequence_Declarations_2020-09-23.csv", col_names = c("sequence", "number_of_records"), skip = 2)
+sequences
+```
+
+B. 
+```{r}
+sequences <- read_csv("datasets/CMC_Sequence_Declarations_2020-09-23.csv", col_names = c("sequence", "number_of_records"), skip = 2) |>
+  filter(number_of_records < 10)
+sequences
+```
+
+
+
+
+
+
+
+
+
+
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""}
+Consider the following command:
+```{r}
+aes <- read_csv("datasets/annual-enterprise-survey-2019-financial-year-provisional-csv.csv")
+```
+
+a. What type of variable was `Year` parsed as?
+
+b. Modify the above command to read in the `Year` variable as an integer.
+:::::
+
+:::: {.solution data-latex=""}
+
+A. 
+```{r}
+aes <- read_csv("datasets/annual-enterprise-survey-2019-financial-year-provisional-csv.csv")
+aes
+
+```
+\( \boxed{\text{Year is being parsed as a "dbl" }} \)
+
+B. 
+```{r}
+aes <- read_csv("datasets/annual-enterprise-survey-2019-financial-year-provisional-csv.csv", col_types = cols("Year" = col_integer()))
+```
+
+
+
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+Consider the file `datasets/example.xlsx` downloadable from the course website.
+
+a.  Give a command to read this into the tibble `data` using `read_excel` from the `readxl` library.
+
+b.  How many data points are there in the resulting dataset?
+::::
+
+:::: {.solution data-latex=""}
+
+A. 
+```{r}
+library(readxl)
+data <- read_excel("datasets/example.xlsx")
+data
+```
+B. 
+\( \boxed{500} \)
+
+
+
+
+
+
+
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+Continue with the dataset from the last problem.  This data comes from Australia.  Filter to only keep the clients from New South Wales, abbreviated NSW.
+::::
+
+:::: {.solution data-latex=""}
+
+```{r}
+data <- read_excel("datasets/example.xlsx") |>
+  filter(State == "NSW")
+data
+```
+
+
+
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Continue with the dataset from the last problem.  Arrange the data so that each observation is in alphabetical order first by State, and then by City within that state.
+::::
+
+:::: {.solution}
+
+```{r}
+data <- read_excel("datasets/example.xlsx") |>
+  arrange(State, City)
+data
+```
+
+
+
+
+
+::::
+
+\newpage
+
+:::: {.problem}
+The [haven]{class=PackageName} package contains functions for loading in datasets from commercial packages such as STATA.  
+
+```{r}
+library(haven)
+```
+
+
+a. Use the [read_dta]{class=KeywordTok} function to read in the file `cancer.dta` from the `datasets` subdirectory.
+
+b.  How many participants are there of age 60 or greater?
+::::
+
+:::: {.solution}
+
+A. 
+```{r}
+read_dta("datasets/cancer.dta")
+```
+
+B. 
+```{r}
+read_dta("datasets/cancer.dta") |> 
+  filter(age >= 60)
+```
+\( \boxed{13} \)
+
+
+
+
+
+
+
+
+::::

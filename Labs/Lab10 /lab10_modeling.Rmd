@@ -1,0 +1,500 @@
+---
+title: 'Lab:  Modeling data with modelr'
+author: "Mark Huber"
+output: 
+  html_document:
+    css:  ../lab-style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(tibble.width = 62)
+```
+
+## Summary
+
+In this lab you will learn how to model data using the base R commands and the `modelr` package.
+
+## Source
+
+The content of this lab comes from Chapter 24 on Model building from *R for Data Science* by Wickham and Grolemund (https://r4ds.had.co.nz/).  
+
+## Modeling data
+
+Start by loading in the `modelr` library (installing the package first if necessary.)
+
+```{r echo = TRUE, warning = FALSE, message = FALSE}
+# install.packages("modelr")
+library(modelr)
+```
+
+Now add the tidyverse.
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+```
+
+## Diamond prices
+
+Consider the dataset `diamonds` that is built in to the tidyverse.  We can get a look at the price versus quality through a boxplot approach.  Try the following.
+
+```{r}
+ggplot(diamonds, aes(clarity, price)) + geom_boxplot()
+```
+
+Recall that the line in the middle of the boxplot is the median of the values.
+
+:::: {.problem data-latex=""}
+What color has the highest median price?  Assign this to `answer01`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+answer01 <- "J"
+```
+::::
+
+:::: {.problem data-latex=""}
+What clarity has the highest median price?  Assign this to `answer02`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+ggplot(diamonds, aes(clarity, price)) + geom_boxplot()
+
+answer02 <- "SI2"
+```
+::::
+
+You might be surprised to learn that, given its price, color J is considered the worst color for a diamond.  This color is a pale yellow.  Similarly, the clarity I1 is considered the worst quality since it indicates that there exist inclusions visible to the naked eye.
+
+This is a perfect example of where there is another variable that confounds our ability to predict price:  the weight of the diamond, as measured by `carat`.  The weight is simultaneously the most important factor in the price of the diamond, and poorer color diamonds also tend to be larger.  We can visualize this with a hex plot.
+
+A hex plot breaks a two dimensional area into hexagons, then counts the number of points that fall into each hexagon and colors the result accordingly.  The package [hexbin]{class=PackageName} needs to be loaded for this to work.
+
+```{r}
+library(hexbin)
+```
+
+
+```{r}
+diamonds |> 
+  ggplot() +
+  geom_hex(aes(x = carat, y = price))
+```
+
+The reason for using [geom_hex]{class=KeywordTok} instead of [geom_point]{class=KeywordTok} is so that the resulting graphic does not have 53940 points in the graph, which can really slow things down!
+
+The graph shows that as the carat increases, the price of the diamonds increase as well.  How can we fit a linear model to this data? Suppose the relationship is 
+\[
+y = c_0 x^{c_1}
+\]
+for constants $c_0$ and $c_1$.  Taking the logarithm base 2 of both sides gives
+\[
+\lg(y) = \lg(c_0) + c_1 \lg(x).
+\]
+In other words, if $x$ and $y$ have a *polynomial* relationship, then $\lg(x)$ and $\lg(y)$ have a *linear* relationship.  Let's see if that holds here:
+```{r, warning = FALSE}
+diamonds2 <- 
+  diamonds |> 
+  mutate(lg_price = log2(price), lg_carat = log2(carat))
+```
+
+Now let's graph the log data:
+```{r, eval = FALSE}
+diamonds2 |> 
+  ggplot(aes(lg_carat, lg_price)) +
+    geom_hex(bins = 50)
+```
+
+That looks much more linear!  Let's make a linear model out of it:
+```{r}
+mod_diamond <- lm(lg_price ~ lg_carat, data = diamonds2)
+coef(mod_diamond)
+```
+
+:::: {.problem}
+Given that `coef(mod_diamond)` are the numbers \( a_0 \) and \( a_1 \) in
+\[
+\ln(y) = a_0 + a_1 \ln(x).
+\]
+Suppose that this is written instead as 
+\[
+y = c_0 x^{c_1}
+\]
+Write code to calculate \( c_1 \) from `coef(mod_diamonds)` and place your answer into `answer03`.
+::::
+
+```{r}
+mod_diamond <- lm(lg_price ~ lg_carat, data = diamonds2)
+coef(mod_diamond)[2]
+```
+
+:::: {.solution}
+```{r}
+answer03 <- 1.675817 
+```
+::::
+
+
+At this point, the predictions obtained are for the linear (log-log) model.  To overlay the original data on top of that, apply the inverse of the log base 2 function.  The inverse of log base 2 is raising the 2 to function input.
+
+For instance, if \( \lg(8) = 3 \), then \( 2^3 = 8 \).
+
+
+Next add the predictions from the model.
+```{r}
+grid <- diamonds2 |>
+  data_grid(carat = seq_range(carat, 20)) |>
+  mutate(lg_carat = log2(carat)) |>
+  add_predictions(mod_diamond, "lg_price") |>
+  mutate(price = 2 ^ lg_price) 
+```
+
+Now for the actual plot.
+```{r}
+diamonds2 |> ggplot(aes(carat, price)) +
+  geom_hex(bins = 50) + 
+  geom_line(data = grid, color = "red", linewidth = 1)
+```
+
+The model starts off strong, but as a certain point, the red prediction line rises above all known prices.  This indicates that the model breaks down as the carat size grows past about 2.3.  So let's only work with those points.
+
+```{r}
+diamonds3 <-
+  diamonds2 |>
+  filter(carat <= 2.3)
+```
+
+
+As usual, we can graph the residuals to see if they show a pattern.  This will give us an idea of how well the model it fitting the data.  First calculate the residuals with the [add_residuals]{class=KeywordTok} function.
+```{r}
+diamonds3 <- diamonds3 |>
+  add_residuals(mod_diamond, "lg_resid") 
+```
+
+Then plot the residuals versus the carat value.
+```{r, eval = FALSE}
+diamonds3 |> ggplot() +
+  geom_hex(aes(lg_carat, lg_resid), bins = 50)
+```
+
+Now go back to a boxplot for the residuals.  This can give us an idea if the model needs to be updated to include `color` as a 
+
+```{r}
+ggplot(diamonds3, aes(color, lg_resid)) + geom_boxplot()
+```
+
+:::: {.problem data-latex=""}
+Which of the color classes has the lowest residuals?  Place the result into `answer04` as a string.
+::::
+
+:::: {.solution}
+```{r}
+answer04 <- "J"
+```
+::::
+
+:::: {.problem data-latex=""}
+Which of the clarity classes has the lowest (below zero) residuals?  Place the result into `answer05` as a string.
+::::
+
+:::: {.solution}
+```{r}
+ggplot(diamonds3, aes(cut, lg_resid)) + geom_boxplot()
+```
+
+```{r}
+answer05 <- "I1"
+```
+
+::::
+
+:::: {.problem data-latex=""}
+Which of the cut classes has the highest residuals?  Place the result into `answer06` as a string.
+::::
+
+
+:::: {.solution}
+```{r}
+answer06 <- "Ideal"
+```
+
+::::
+
+### Including color, cut, and clarity in the model
+
+Seeing these residual plots drives home that the color, cut, and clarity should be part of the model.  So let's add these properties to create a new model.
+
+```{r}
+mod_diamond2 <- lm(lg_price ~ lg_carat + color + cut + clarity,
+                   data = diamonds3)
+```
+
+The predictor `cut` together with the model `mod_diamond2` is then passed to `data_grid`.  This will use all the possible `cut` values, and then add typical values for the other predictors of the model.
+```{r}
+grid <- diamonds2 |>
+  data_grid(cut, .model = mod_diamond2) |>
+  add_predictions(mod_diamond2)
+grid
+```
+
+Now take a look at the residuals:
+```{r}
+diamonds3 <- 
+  diamonds3 |>
+  add_residuals(mod_diamond2, "lg_resid2")
+```
+And let's plot them
+```{r}
+diamonds3 |> ggplot() +
+  geom_hex(aes(lg_carat, lg_resid2), bins = 50)
+```
+
+Overall we have a pretty good model at this point.  However, there are still some cases where the log-residuals are either very large or very small, so it is not capturing all situations.
+
+## The `flights` data set
+
+Now let's consider an analysis of the `flights` data from the package `nycflights13`.  First let's load in the data, and the package `lubridate` in order to handle the date entries.
+
+```{r, warning = FALSE, message = FALSE}
+library(nycflights13)
+library(lubridate)
+```
+
+Next let's break down the number of flights by date.
+```{r}
+daily <- flights |>
+  mutate(date = make_date(year, month, day)) |>
+  group_by(date) |>
+  summarize(n = n())
+daily
+```
+
+First graph the data to look for a pattern.  The [wday]{class=KeywordTok} turns a date into a weekday factor value.
+```{r}
+weekday <- 
+  daily |> 
+  mutate(wday = wday(date, label = TRUE))
+```
+
+Next look at a boxplot of number of flights by day of the week.
+```{r}
+weekday |> ggplot(aes(wday, n)) +
+  geom_boxplot()
+```
+
+There is a strong effect of weekday versus weekend.  Most fliers are traveling for business, so very few leave on a Saturday.  Because this is categorical data, when we fit a model it will just use the mean of the data for the prediction.  First fit the model and add the predictions.
+```{r}
+mod <- lm(n ~ wday, data = weekday)
+
+grid <- weekday |>
+  data_grid(wday) |>
+  add_predictions(mod, "n")
+```
+
+Now we add the predictions to the model plot.
+```{r}
+weekday |> ggplot(aes(wday, n)) +
+  geom_boxplot() +
+  geom_point(data = grid, color = "red", size = 4)
+```
+
+:::: {.problem data-latex=""}
+Look at the graph and see if the prediction are `"above"` or `"below"` the median values.  Assign the result to `answer07`.
+::::
+
+:::: {.solution}
+```{r}
+answer07 <- "below"
+```
+
+::::
+
+Now that we have predictions, we can look at the residuals to try and identify any remaining patterns that need to be modeled.
+```{r}
+weekday <- weekday |>
+  add_residuals(mod)
+```
+
+For the plot, try
+```{r, eval = FALSE}
+weekday |>
+  ggplot(aes(date, resid)) +
+  geom_ref_line(h = 0) +
+  geom_line()
+```
+
+There's definitely a pattern there!  For one thing, there are some spikes in the data.  Let's take a closer look at those.
+```{r}
+weekday |>
+  filter(resid < -100)
+```
+
+You can see, July 4th (and July 5th) in the date, along with Thanksgiving, Christmas, and Christmas Eve. There also seems to be more flights in the summer in general and fewer in winter.  We can use the `geom_smooth` function to give a local estimate for this behavior.
+
+```{r}
+weekday |> 
+  ggplot(aes(date, resid)) + 
+  geom_ref_line(h = 0) + 
+  geom_line(colour = "grey50") + 
+  geom_smooth(se = FALSE, span = 0.20)
+```
+
+To get a better idea of what's going on, let's concentrate on the Saturday flights.  First let's plot them over the course of the year.
+```{r, eval = FALSE}
+weekday |> 
+  filter(wday == "Sat") |> 
+  ggplot(aes(date, n)) + 
+    geom_point() + 
+    geom_line() +
+    scale_x_date(NULL, date_breaks = "1 month", date_labels = "%b")
+```
+
+The pattern is clear--people fly much more in the summer months (perhaps because of school vacation), less in the Spring and even less in the Fall with a spike at the edges of Christmas vacation.  Since things appear to be school driven, let's break up our data into Spring, Summer, and Fall.  First we create a function that calculates the term:
+```{r}
+term <- function(date) {
+  cut(date, 
+    breaks = ymd(20130101, 20130605, 20130825, 20140101),
+    labels = c("spring", "summer", "fall") 
+  )
+}
+```
+
+Next we apply it to our data.
+```{r}
+weekday <- weekday |>
+  mutate(term = term(date))
+```
+
+Now we can graph our data broken up by term.
+```{r, eval = FALSE}
+weekday |> 
+  filter(wday == "Sat") |> 
+  ggplot(aes(date, n, color = term)) +
+  geom_point(alpha = 1/3) + 
+  geom_line() +
+  scale_x_date(NULL, date_breaks = "1 month", date_labels = "%b")
+```
+
+To see if this new factor is useful, let's look at the box plots broken down by term.
+```{r}
+weekday |> 
+  ggplot(aes(wday, n, color = term)) +
+    geom_boxplot()
+```
+
+Definitely some term effects going on there.  But does it help the model?  Let's add in the factor `term` as a predictor and see how the model changes.
+```{r}
+mod1 <- lm(n ~ wday, data = weekday)
+mod2 <- lm(n ~ wday * term, data = weekday)
+```
+
+Put the residuals from both models together.
+```{r}
+weekday <- weekday |> 
+  gather_residuals(without_term = mod1, with_term = mod2)
+```
+
+Now plot them.
+```{r}
+weekday |> 
+  ggplot() +
+    geom_line(aes(date, resid, color = model), alpha = 0.75)
+```
+
+There's a bit of difference, but not as much as one might have hoped.  Let's look at this using facets so that the overlap isn't a problem.
+
+```{r}
+weekday |> 
+  ggplot(aes(date, resid)) +
+    geom_line(alpha = 0.75) +
+    facet_wrap(~ model)
+```
+
+Using the term seems to improve the mid-sized residuals, but not the big extremes.
+
+### Fitting a spline
+
+In the last section, we used our knowledge of school terms to induce an extra factor in the data.  As an alternative, we could use an automatic method to fit the data.  One such approach uses *splines*.  First load in the library
+```{r, warning = FALSE, message = FALSE}
+# install.packages("splines")
+library(splines)
+```
+
+Next let's fit a spline to the data.  Instead of the basic `lm` (linear models) function, we will use `rlm` which stands for *robust linear models*.  This uses a more advanced method of determining coefficients called an M estimator.  It tends to ignore outliers automatically, so can be a useful tool for not letting days like the Fourth of July dominate our estimate.  The `ns` function uses a natural spline to try to match what is happening across days.
+
+The [rlm]{class=KeywordTok} function is in the library [MASS]{class=PackageName}.  First load the library.
+```{r}
+library(MASS)
+```
+
+Then create the robust linear model.
+```{r}
+mod <- rlm(n ~ wday * ns(date, 5), data = weekday)
+```
+
+With that in place, let's go ahead and look at the predictions.
+```{r}
+weekday <- weekday |> 
+  data_grid(wday, date = seq_range(date, n = 13)) |> 
+  add_predictions(mod, "pred")
+```
+
+```{r}
+weekday |> 
+  ggplot(aes(date, pred, color = wday)) + 
+    geom_line() +
+    geom_point()
+```
+
+Now we can see how strongly the day of the week is affecting flights.  Most of the days are similar, with Monday having the same rough shape but being lower.  Saturday, on the other hand, is very far away and even the shape of the curve is different.
+
+:::: {.problem data-latex=""}
+The fact that the data runs from about 650 to 1000 can make you think that the effect of Saturday is greater than it really is.  Use the `expand_limits` function to plot the same data where the prediction axis runs from 0 to 1000.  Assign the resulting graphical object to `answer08`.
+::::
+
+:::: {.solution}
+```{r}
+answer08 <-
+  weekday |> 
+  ggplot(aes(date, pred, color = wday)) + 
+    geom_line() +
+    geom_point() +
+    expand_limits(y = c(0, 1000))
+```
+::::
+
+:::: {.problem}
+Consider the `iris` data set built in to R.  Create a scatterplot of the `Petal.Length` versus the `Sepal.Length`, colored by species.  Assign the resulting graphical object to `answer09`.
+::::
+
+
+:::: {.solution}
+```{r}
+answer09 <- iris |> 
+  ggplot(aes(x = Sepal.Length, y = Petal.Length, color = Species)) + 
+  geom_point()
+```
+::::
+
+:::: {.problem }
+Fit an `rlm` model to the petal length versus the sepal length.  Find the largest residual from the predictions of your model, and assign this to `answer10`.
+::::
+
+```{r}
+moder <- rlm(Petal.Length ~ Sepal.Length, data = iris)
+```
+
+```{r}
+iris |>
+  add_residuals(moder) |>
+  arrange(desc(resid)) |>
+  slice(1)
+```
+
+
+:::: {.solution}
+```{r}
+answer10 <- 2.493626
+```
+::::

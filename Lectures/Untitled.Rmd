@@ -1,0 +1,100 @@
+---
+title: "10/24/2022 Lecture"
+author: "Lucas Welch"
+date: "2022-10-24"
+output: html_document
+---
+
+Today: 
+-Ecape characters 
+-References
+-Alternation
+
+Last Time: 
+  Wildcard '.' matches any character
+  We could use [] to match SOME characters 
+    ex[a-g, 0-4] match  a,b,c,d... or g OR 0,1,2,3,4
+    ex(abc) parentheses group patterns 
+    + pattern appears one or more times
+    * zero times
+    ^ zero at a time 
+    
+Want to match a left bracket followed by any characters and right bracket ([a])
+
+Recall \n = new line
+
+Use escape characters for any special symbol ex( \. \[ .) \+ \? )
+
+Regex to match left bracket, any character, right bracket is 
+\[.\] matches "a[g]" 
+
+does not match "ag[]"
+
+Regex: Takes a string and outputs a regex
+If you want to create regex = \[.\], you need to put "\\[.\\]" in a string
+
+Regex to match any two characters followed by the same characters(..) -> two character that matches are in stored in \1 (...) -> \2 
+
+
+Regex to match abc or cde 
+(abc)|(cde)
+
+```{r}
+library(tidyverse)
+```
+```{r}
+regex ("\\[a.b\\]")
+```
+
+The string "\\[a.b\\]" will translate to regex "\[a.b\]"
+
+```{r}
+str_detect(c("[apc]", "[gca]"), "\\[a.b\\]")
+```
+```{r}
+str_extract(c("[apc]", "[gca]"), "\\[a.b\\]")
+```
+
+#Alteration
+
+```{r}
+str_extract(c("abcde", "cde", "bigeh"), "(abc)|(cde)")
+```
+
+```{r}
+str_extract_all(c("abcde", "cde", "bigeh"), "(abc)|(cde)")
+```
+
+#References
+
+```{r}
+str_extract(c("abcde", "cde", "bgeh", "abcbc"), "(..)\\1")
+```
+
+```{r}
+str_replace("abcbcg", "(..)\\1", "\\1")
+```
+
+Suppose I want to replace the characters inside brackets with the characters inside the paranthesis.
+
+```{r}
+str_replace(c("abcbcg", "[a]", "[]", "\\[(.*)\\]", "\\(\\1\\)"))
+```
+
+"\\[(.*)\\]" This gets turned into regex "\[(.*)\] which means, match a left bracket followed by zero or more characters, followed by a right bracket 
+
+Because the "zero or mroe characters  part" surrounded by paranthesis, what matches inside the paraenthesis gets assigned to \1. 
+
+
+#Why use regular expressions 
+
+Still situations where compactness is important
+
+Regular expressions are plain text
+
+Still precise about the pattern
+
+
+
+
+

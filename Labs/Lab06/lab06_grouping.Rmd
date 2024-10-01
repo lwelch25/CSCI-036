@@ -1,0 +1,319 @@
+---
+title: 'Lab:  Relational data in the tidyverse'
+author: "Mark Huber"
+output: 
+  html_document:
+    css:  ../lab-style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+options(tibble.width = 62)
+```
+
+## Packages
+
+The three packages needed for the lab today are:
+
+* [dplyr]{class=PackageName} for joining data sets together,
+
+* [ggplot2]{class=PackageName} for a final visualization,
+
+* [nycflights13]{class=PackageName} for an illustration with a real dataset.
+
+```{r, warning = FALSE, message = FALSE}
+library(dplyr)
+library(ggplot2)
+library(nycflights13)
+```
+
+
+# Relational Data
+
+A dataset is in *relational form* if the dataset can be broken into tables, where each table has a set of column names, and each row of the table is an observation whose entries measure what is indicated in that column.  Each table is also known as a *relation*.
+
+This leads to the question of how to bring together observations from different tables when the two tables might have different columns (variables).
+
+## Bringing data together
+
+Start with a small toy data set that describes the band members of the Beatles and Rolling Stones.  They are included as part of the package `dplyr`, so have already been loaded.
+
+There are three tables to illustrate joining tables, `band_members`, `band_instruments`, and `band_instruments2`.
+```{r}
+band_members
+```
+
+```{r}
+band_instruments
+```
+
+```{r}
+band_instruments2
+```
+
+:::: {.problem data-latex=""}
+Take a look at `band_members`.  Recall that a *key* is a single variable or set of variables that once the values are known, the observation is known.  Is the set $\{\text{band}\}$ a key?  Assign your answer as either [TRUE]{class=OtherTok} or [FALSE]{class=OtherTok} to `answer01`.
+::::
+
+:::: {.solution}
+
+```{r}
+answer01 <- FALSE
+```
+
+
+::::
+
+:::: {.problem data-latex=""}
+In `band_members`, is \( \{ \text{name} \} \) a key?  Assign your answer as either [TRUE]{class=OtherTok} or [FALSE]{class=OtherTok} to `answer02`.
+::::
+
+
+:::: {.solution}
+
+```{r}
+answer02 <- TRUE 
+```
+
+::::
+
+## Checking if a variable is a key
+
+To double check your answers above, let's count the number of times each value appears in each variable using the [count]{class=KeywordTok} function.  First for the `name` variable.
+```{r}
+band_members |> count(name)
+```
+If `name` is a key, then each observation from `name` will only appear once.
+
+Now for the `band` variable.
+```{r}
+band_members |> count(band)
+```
+
+If `band` is a key that uniquely determines the observation, then each entry from `band` will appear only once.
+
+:::: {.problem data-latex=""}  
+For a variable to be a key, what is the largest the variable `n` can be in the `count(variablename)` result?  Put this integer into `answer03`.
+::::
+
+
+:::: {.solution}
+
+```{r}
+answer03 <- 1 
+```
+
+
+::::
+
+## Mutating joins
+
+A *mutating join* adds variables from one table to another.  There are four types of such joins.  Let's try the four types of mutating joins with these tables.  
+
+First the *inner join*.  This type of join brings observations that appear in both tables.
+```{r}
+band_members |> inner_join(band_instruments)
+```
+
+A *foreign key* is a key for observations from the second table.
+
+:::: {.problem data-latex=""}
+What variable was used as the foreign key for `band_members`?  Assign this as a string to `answer04`.
+::::
+
+```{r}
+answer04 <- 'name'
+```
+
+:::: {.solution}
+
+::::
+
+Note that the band member `"Keith"` was not included in the inner join.  This is because Keith appears in `band_instruments`, but not in `band_members`.
+
+:::: {.problem data-latex=""}
+What name appears in `band_members`, but not in `band_instruments` (and so does not show up in the inner join)?  Assign this name as a string to `answer05`.
+::::
+
+```{r}
+answer05 <- 'Mick'
+```
+
+:::: {.solution}
+
+::::
+
+The next three joins are all types of *outer joins*.  First the *left join* where every observation from the first table is included, and any information from the second table is added.
+```{r}
+band_members |> left_join(band_instruments)
+```
+
+:::: {.problem data-latex=""}
+Between `band_instruments` and `band_members` there are four names.  Which name was excluded from the left join?  Assign this name as a string to `answer06`.
+::::
+
+```{r}
+answer06 <- 'Keith'
+```
+
+
+:::: {.solution}
+
+::::
+
+
+Next there is the rarely used right join where all the observations from the second table are included, and information from the first table is added as needed.
+```{r}
+band_members |> right_join(band_instruments)
+```
+
+
+Now try the full join (also called an outer join), which keeps all observations from all tables, filling in information whenever possible.
+```{r}
+band_members |> full_join(band_instruments)
+```
+
+## Filtering joins
+
+The *filtering joins* do not add variables to a table, rather, they select based on the presence or absence of the variable in the other table.  For instance, consider the `semi_join`.
+```{r}
+band_members |> semi_join(band_instruments)
+```
+
+:::: {.problem data-latex=""}
+Consider which table the `semi_join` output draws its variables from.  If it was `band_instruments`, then use `answer07 <- band_instruments`.  If it was `band_members`, then use `answer07 <- band_members`.
+::::
+
+```{r}
+answer07 <- band_members 
+```
+
+
+:::: {.solution}
+
+::::
+
+The semi-join does not include the name Mick from variable `name` because that name does not appear in `band_instruments`.
+
+:::: {.problem data-latex=""}
+Observations in the second table `band_instruments` that do not appear in the first will also not be a part of the semi-join.  What name in `band_instruments` does not appear in `band_members`?  Assign this name as a string to `answer08`.
+::::
+
+```{r}
+answer08 <- 'Keith'
+```
+
+:::: {.solution}
+
+::::
+
+
+The next type of filtering join is an *anti join*.  Try this out:
+```{r}
+band_members |> anti_join(band_instruments)
+```
+
+:::: {.problem data-latex=""}
+Which table, `band_members` or `band_instruments` would be the union of the `semi_join` and `anti_join` of the two tables?  Assign your answer to `answer09`.
+::::
+
+```{r}
+answer09 <- band_members
+```
+
+:::: {.solution}
+
+::::
+
+
+### Changing variable names
+
+Consider the `band_instruments2` table.
+```{r}
+band_instruments2
+```
+This table `band_instruments2` contains the same information as `band_instruments`, but the first variable name is now `artist` rather than `name`.  To successfully use our joins on this table, we need to tell R what variables to use as the key.
+
+```{r}
+band_members |> 
+  full_join(band_instruments2, 
+            by = c("name" = "artist"))
+```
+:::: {.problem data-latex=""}
+Suppose we had used `by = c("band" = "artist")` in the above command by mistake.  How many missing values would appear in the result?  Assign your integer answer to `answer10`.
+::::
+
+```{r}
+answer10 <- 6
+```
+
+
+:::: {.solution}
+
+::::
+
+## Working with non keys
+
+The join functions will still run when keys are not used, but the output has many more rows.  Because the functions will not know which value is the `right' observation, it is forced to include all possibilities.  Consider the following tables:
+```{r}
+t1 <- tibble(
+  name = c('AZI-3', '2-1B', 'R2-Q5', 'AZI-3'),
+  occupation = c('med', 'surgery', 'astromech', 'protocol')
+  )
+t2 <- tibble(
+  name = c('AZI-3', 'R2-Q5'), 
+  location = c('Kamino', 'Death Star II')
+  )
+```
+
+Now consider what happens when we use name to add location data to `t1`:
+```{r, results = "hide"}
+t1 |> full_join(t2, by = "name")
+```
+
+Note that `AZI-3` ends up appearing twice, once with occupation `"med"` and once with occupation `"protocol"`.
+
+## Flights from the New York area
+
+Now let's try some of these ideas with a real data set.
+
+One of the data tables in the `nycflights13` package is `weather`, which contains the temp, dew point, humidity, and wind_dir for each hour of every day in 2013 recorded at LGA (La Guardia Airport), JFK (John F. Kennedy Airport), and EWR (Newark Airport).
+
+```{r}
+weather |> head()
+```
+
+Another table `flights` contains all flights leaving LGA, JFK, and EWR.
+
+```{r}
+flights |> head()
+```
+
+By using a left join, the temperature at the time of flight can be added from the `weather` relation to the `flights` relation to get a new table `flightstemp`.
+
+```{r}
+flightstemp <-
+  left_join(flights, weather)
+```
+
+Once the data is joined as a variable, it can be used like any other variable.  For instance, the mean temperature of flights grouped by month can be found.
+
+```{r}
+flightstemp |>
+  group_by(month) |>
+  summarize(m = mean(temp, na.rm = TRUE))
+```
+
+A bar chart can be used to visualize this data.
+```{r}
+flightstemp |>
+  group_by(month) |>
+  summarize(m = mean(temp, na.rm = TRUE)) |>
+  ggplot(aes(x = factor(month), y = m)) +
+  geom_bar(fill = "blue",
+           stat = "identity") +
+  xlab("Month Number") +
+  ylab("Average Temperature") +
+  theme_minimal() +
+  ggtitle("Average Temperature of flights broken down by month")
+```

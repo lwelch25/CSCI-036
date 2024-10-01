@@ -1,0 +1,349 @@
+---
+title: 'Homework 07 CSCI 036 Solutions'
+author: 'Lucas Welch'
+output: 
+  html_document:
+    css:  ../homework-style.css
+  pdf_document:
+    includes:
+      in_header:  "../homework-style.tex"
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+#Color Format
+colFmt = function(x,color){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\textcolor{",color,"}{",x,"}",sep="")
+  else if(outputFormat == 'html')
+    paste("<font color='",color,"'>",x,"</font>",sep="")
+  else
+    x
+}
+#Box Format
+boxFmt = function(x){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\framebox{\\hspace*{1em} ", x, "}")
+  else if(outputFormat == 'html')
+    paste("<span class=\"boxed\">", x , "</span>")
+  else
+    x
+}
+library(tidyverse)
+```
+
+Due:  Friday, 2022-10-28
+
+# Instructions
+
+Please box your answers.  For numerical answers, this can be done using something like \( \boxed{34} \).  For text answers, this can be done using something like \( \boxed{\text{My answer}} \).   The output of a code chunk is automatically boxed, so no need to do more.
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Consider the regular expression `34.[a-g]`.  Which of the following strings does this pattern match?
+
+a. `"345b"`
+
+b. `"34b5"`
+
+c. `"435b"`
+
+d. `"34gb"`
+::::
+\(\boxed{\text{A and D}}\)
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Write down a regular expression that matches a digit, followed by any character, followed by the letter `a`, followed by any lowercase letter.
+::::
+
+\(\boxed{\text{"[0-9].a[a-z]"}}\)
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Consider the `mtcars` dataset.  The `row_names_to_columns` function can be used to make the row names the first columns of data.
+
+```{r}
+mtcars |>
+  rownames_to_column() |>
+  head()
+```
+
+a. Using `str_detect` and `filter`, find all the observations with car names that start with `"Merc"`.
+
+b. Using `str_detect` and `filter`, find all the observations with car names that have at least one digit in them.
+
+::::
+
+a. 
+```{r}
+mtcars |>
+  rownames_to_column() |>
+  filter(str_detect(rowname, "^Merc"))
+  
+```
+b. 
+```{r}
+mtcars |>
+  rownames_to_column() |>
+  filter(str_detect(rowname, "[0-9]"))
+```
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Consider the `USArrests` dataset.  
+
+a. Use `str_detect` and `filter` to find all the observations from states that begin with the letter `A`.
+
+b. Use `str_detect` and `filter` to find all the observations from states that end with the letter `a`.
+
+c. Use `str_detect` and `filter` to find all the observations from states that begins with `A` and ends with `a`.
+::::
+```{r}
+USArrests 
+```
+
+a. 
+```{r}
+USArrests |>
+  rownames_to_column() |> 
+  filter(str_detect(rowname, "^A"))
+```
+
+b. 
+```{r}
+USArrests |>
+  rownames_to_column() |>
+  filter(str_detect(rowname, "a$"))
+```
+c. 
+```{r}
+USArrests |>
+  rownames_to_column() |>
+  filter(str_detect(rowname, "^A")) |>
+  filter(str_detect(rowname, "a$"))
+```
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Consider the following code.
+```{r}
+test <- c("Uranium Fever", "New Moon", "Ain't that a kick in the head")
+str_extract(test, "[a-zA-Z]+$")
+str_extract(test, "^[a-zA-Z]+")
+str_extract(test, "[^a-zA-Z]+")
+```
+
+
+
+a. Describe in words what the regular expression `[a-zA-Z]+$` is trying to find.
+
+b. Describe in words what the regular expression `^[a-zA-Z]+` is trying to find.
+
+c. Describe in words what the regular expression `[^a-zA-Z]+` is trying to find.
+::::
+
+a.
+\(\boxed{\text{It's extracting letters(a-z(A-Z)) from code after the first word then adding the second word since the $ }}\)
+b.
+\(\boxed{\text{It's extracting letters(a-zA-Z) from the first words since the ^}}\)
+c. 
+\(\boxed{\text{It's extracting any letters from the whole line because the ^ is in the brackets}}\)
+:::: {.solution data-latex=""}
+
+::::
+
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Consider the dataset `painters` from the `MASS` library.  First, load in the library.
+```{r}
+library(MASS)
+```
+
+Then the dataset looks as follows.
+```{r}
+painters |> head()
+```
+
+a. Find the observations where the painter name has at least one space in it.
+
+b. Using your tibble from part a., create a column `after_space` which lists the part of the painters name after the last space in the name.
+
+```{r}
+painters
+```
+
+::::
+a. 
+```{r}
+painters |>
+  rownames_to_column() |>
+  filter(str_detect(rowname, " "))
+```
+
+b.
+```{r}
+painters |>
+  rownames_to_column() |>
+  filter(str_detect(rowname, " ")) |>
+  mutate(after_space = str_extract(rowname, "[a-zA-Z]+$"))
+```
+
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Suppose you have a vector of strings in `s`.
+
+a. Write code to detect for each string in the vector if it contains the letter `a` followed by a digit at least once.
+
+b. Write code that matches the pattern given in part a, but instead of returning true or false, returns the two characters that match the pattern if it exists in the string.
+::::
+
+a. 
+```{r}
+t <- c("aww", "a43", "hfi2")
+s_detect <- str_detect(t, "a[0-9]")
+s_detect
+```
+
+b. 
+```{r}
+t <- c("jdne", "a898", "vdw3")
+s_extract <- str_extract(t, "a[0-9]")
+s_extract
+```
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Consider a tibble:
+```{r}
+phone_numbers <-
+  tribble(
+  ~Name, ~Phone,
+  "Mr. Plow", "636-555-3226",
+  "Big Mean Carla", "323-555-0129",
+  "Elmo", "212-555-6666",
+  "Phoenix Biogenics", "225-330-7040"
+)
+```
+
+The *area code* for a U.S. phone number consists of the first three digits.  
+
+a. Write code to add a column `area_code` to the tibble which consists of the first three digits of the phone number.
+
+b. Write code to filter `phone_numbers` to only include numbers where the middle three digits are `555`.
+::::
+
+a.
+```{r}
+phone_numbers |>
+  mutate(area_code = str_extract(Phone, "^[0-9][0-9][0-9]"))
+```
+b. 
+```{r}
+phone_numbers |>
+  filter(str_detect(Phone,"-555-"))
+```
+
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+a. Give a regular expression that matches one or more digits at the beginning of a string.
+
+b. Give a regular expression that matches zero or more digits at the end of a string.
+::::
+
+a. 
+\( \boxed{\text{"^[0-9]+"}} \)
+
+b.
+\( \boxed{\text{"[0-9]*\$"}} \)
+
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+Consider the following tibble.
+
+```{r}
+data <- 
+  tibble(
+    s = c("blue141car", "red314159truck", "yellow2718airplane")
+  )
+```
+
+Using the `separate` command, use a regular expression for the `sep` parameter to separate the `s` variable into `before_number` and `after_number`.
+
+```{r}
+data
+```
+
+::::
+
+```{r}
+data |>
+  separate(s, into = c("before_number", "after_number"), sep = ("[0-9]+"))
+```
+
+:::: {.solution data-latex=""}
+
+::::
+

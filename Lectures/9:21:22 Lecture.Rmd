@@ -1,0 +1,123 @@
+---
+title: "9/21/22 Lecture"
+author: "Lucas Welch"
+date: "2022-09-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+Scatterplots
+  geom_point
+  geom_line
+bar plot
+  geom_bar(aes(x=year), stat = "count")
+  
+  geom_bar(aes=(x=year, y=height),
+    stat="identity")
+
+```{r}
+library(ggplot2)
+```
+
+#Histograms
+
+```{r}
+faithful |> head()
+?faithful
+```
+
+```{r}
+faithful |>
+    ggplot(aes(x=eruptions, y=waiting)) +
+      geom_point(color="blue") +
+      geom_smooth(method="lm", color="red", se = FALSE)
+```
+
+```{r}
+faithful |> 
+  ggplot() +
+    geom_histogram(aes(x=eruptions),
+      color = "black", 
+      fill = "white")
+```
+
+#Compositional chart
+
+compositional bar chart is a single bar chart that height is borken up by some other factor 
+
+```{r}
+library(tibble)
+```
+```{r}
+pop <- tibble(
+  state = c("CA","TX", "FL", "SD"), 
+  population = c(37, 25, 19 ,1 )
+)
+pop
+```
+
+```{r}
+pop |> 
+  ggplot()+
+    geom_bar(aes(x="", y=population, fill=state), 
+             stat = "identity") +
+    theme_void()+
+    coord_flip()
+```
+
+## Pie chart
+
+DO NOT EVER USE
+
+```{r}
+pop |> 
+  ggplot()+
+    geom_bar(aes(x="", y=population, fill=state), 
+             stat = "identity", width = 0.2) +
+    theme_void()+
+    coord_flip("y")
+
+```
+
+
+#Correlogram
+
+```{r}
+mtcars
+```
+
+```{r}
+cor(mtcars) |> round(2)
+```
+```{r}
+library(ggcorrplot)
+```
+
+```{r}
+cor(mtcars) |> round(2) |>
+  ggcorrplot(hc.order=TRUE)
+```

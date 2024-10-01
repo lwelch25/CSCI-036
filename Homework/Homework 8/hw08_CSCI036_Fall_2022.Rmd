@@ -1,0 +1,245 @@
+---
+title: 'Homework 08 CSCI 036 Solutions'
+author: 'Insert Name Here'
+output: 
+  html_document:
+    css:  ../homework-style.css
+  pdf_document:
+    includes:
+      in_header:  "../homework-style.tex"
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+#Color Format
+colFmt = function(x,color){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\textcolor{",color,"}{",x,"}",sep="")
+  else if(outputFormat == 'html')
+    paste("<font color='",color,"'>",x,"</font>",sep="")
+  else
+    x
+}
+#Box Format
+boxFmt = function(x){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\framebox{\\hspace*{1em} ", x, "}")
+  else if(outputFormat == 'html')
+    paste("<span class=\"boxed\">", x , "</span>")
+  else
+    x
+}
+library(tidyverse)
+```
+
+Due:  Friday, 2022-11-11
+
+# Instructions
+
+Please box your answers.  For numerical answers, this can be done using something like \( \boxed{34} \).  For text answers, this can be done using something like \( \boxed{\text{My answer}} \).   The output of a code chunk is automatically boxed, so no need to do more.
+
+:::: {.problem data-latex=""}
+What string `answer01` matches the pattern `(Why?)(Because.)` somewhere in a string?  So `regex(answer01)` should match with `"(How?)(Why?)(Because.)"` but not `"(How?)(Why.)(Because?)"`
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+answer01 <- "\\(Why\\?\\)\\(Because\\.\\)"
+```
+::::
+
+:::: {.problem data-latex=""}
+Suppose that I have a regular expression `\(\[[a-z]*\]\)` that looks for any number of lowercase letters surround by brackets and then surrounded by parenthesis.  Assign to `answer02` the string such that `regex(answer02)` creates this regular expression. 
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+answer02 <- "\\(\\[[a-z]*\\]\\)"
+```
+::::
+
+
+:::: {.problem data-latex=""}
+Write a function `answer03` that takes as input a vector of strings, and returns true for each string that contains two digits followed by the same two digits.  So `"a57572b"` should match, but `"57725"` should not.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+answer03 <- function(s) str_detect(s, "([0-9][0-9])\\1")
+```
+::::
+
+:::: {.problem data-latex=""}
+a. Create a function `answer04a` that takes as input a vector of strings, and checks  if each string is both nonempty and only contains digits.  So `"23443"` and `"2"` should match, but `""` and `"2452abc"` should not.  For strings in the vector that match, it should return [TRUE]{class=OtherTok}, and strings that don't it should return [FALSE]{class=OtherTok}.
+
+b. Create a function `answer04b` that matches a left bracket, followed by any number (including zero) of digits, followed by a right bracket.  So `"[23443]"` and `"[]"` should match, but `"(23443)"` and `"[23gdg]"` should not.  Have your function extract the first pattern that matches if such exists in the string.
+::::
+
+:::: {.solution data-latex=""}
+a. This could be done as follows.
+    ```{r}
+    answer04a <- function(s) 
+      str_detect(s, "^[0-9]+$")
+    ```
+
+b. The following does this.
+    ```{r}
+    answer04b <- function(s)
+      str_extract(s, "\\[[0-9]*\\]")
+    ```
+::::
+
+:::: {.problem data-latex=""}
+Using `str_replace_all` write a function `answer05` that takes a string `s` as input and replaces every instance of digits surrounded by parenthesis with the same digits surrounded by the vertical bar `|`.  So `"(345)(874)[273]"` gets turned into `"|345||874|[273]"`.
+::::
+
+:::: {.solution data-latex=""}
+This can be done with
+```{r}
+answer05 <- function(s) 
+  str_replace_all(s, "\\(([0-9]+)\\)", "\\|\\1\\|")
+```
+::::
+
+
+:::: {.problem data-latex=""}
+Consider the data:
+```{r}
+x <- c("Jul", "Sep", "Feb", "Sep")
+```
+
+a. Create a new dataset with the levels into the proper month order, and place it in `answer06a`.
+
+b. Create a bar plot of the data and place this graphical object in `answer06b`.
+::::
+
+:::: {.solution data-latex=""}
+This can be done with
+```{r}
+answer06a <-
+  x |> factor(levels = c("Feb", "Jul", "Sep"))
+answer06a |>
+  tibble() |>
+  ggplot(aes(x = y)) +
+  geom_bar(fill = "blue", color = "black") -> answer06b
+```
+::::
+
+:::: {.problem data-latex=""}
+Consider the variable `blood`.
+```{r}
+blood <- c("B", "A", "A", "A", "A", "AB", "O", "B", "A", "B", "A", "A", "B", "A", "AB", "AB", "O", "A", "B", "A")
+```
+
+This contains blood types that are either type `"A"`, `"B"`, `"AB"`, or `"O"`.  Turn this into a factor with levels in that order, and place it in `answer07`.
+::::
+
+:::: {.solution data-latex=""}
+This can be done with
+```{r}
+answer07 <- factor(blood, levels = c("A", "B", "AB", "O"))
+```
+::::
+
+:::: {.problem data-latex=""}
+Continuing the last problem, suppose now there are types `"A-"` (read as A negative), `"A+"` (read as A positive), `"B-"`, `"B+"`, `"AB-"`, `"AB+"`, `"O-"`, and `"O+"`.  
+```{r}
+blood_rh <- c("B+", "A+", "A+", "A-", "A-", "AB-", "O-", "B-", "A-", "B+", "A+", "A-", "B+", "A-", "AB+", "AB-", "O+", "A-", "B+", "A+")
+```
+
+
+Write code to collapse the dataset `blood_rh` down to the four blood types from the previous problem, and place the result into `answer08`.
+::::
+
+:::: {.solution data-latex=""}
+This can be done with
+```{r}
+answer08 <-
+  fct_collapse(blood_rh, 
+    "A" = c("A+", "A-"),
+    "B" = c("B+", "B-"),
+    "AB" = c("AB+", "AB-"),
+    "O" = c("O+", "O-")
+)
+```
+
+::::
+
+:::: {.problem data-latex=""}
+Consider the `gss_cat` variable from the [forcats]{class=PackageName}.
+```{r}
+library(forcats)
+```
+
+The [count]{class=KeywordTok} can be used to tell how many observations there are for each `age` and `relig` value.
+```{r}
+gss_cat |> count(relig, age)
+```
+
+
+Using this data, create a graph showing how the proportion of religious affiliation varies with age. Make your graph as readable as possible by properly ordering the levels in the legend.  Store the result in `answer09`.
+::::
+
+:::: {.solution data-latex=""}
+When grouping by `age`, the `sum` function finds the total number of observations of that age group.  Use it within `mutate` to assign the sum to every age and religion value.
+```{r}
+gss_cat |> 
+  count(relig, age) |>
+  group_by(age) |>
+  mutate(s = sum(n))
+```
+
+This allows for the proportions to be calculated.
+
+```{r}
+gss_cat |>
+  count(relig, age) |>
+  group_by(age) |> 
+  mutate(prop = n / sum(n))
+```
+
+Finally, build a line graph of the `prop` data, and use it to order the `relig` variable for the highest `age` value.
+```{r, fig.height = 5, fig.width = 10}
+answer09 <-
+  gss_cat |>
+    count(relig, age) |>
+    group_by(age) |> 
+    mutate(prop = n / sum(n)) |>
+    ggplot() +
+      geom_line(aes(x = age, 
+                    y = prop, 
+                    color = fct_reorder2(relig, age, prop)))
+```
+::::
+
+:::: {.problem data-latex=""}
+Consider the data set `ad_treatment.xlsx` on the course website.  The [realxl]{class=PackageName} can be used to read this in.
+```{r}
+library(readxl)
+```
+
+```{r}
+df <- read_xlsx("ad_treatment.xlsx")
+```
+
+a.  write code to place the factors of this dataset into `answer10a`.
+
+b.  Write code to place the levels of the factor `drug_treatment` into `answer10b`.
+::::
+
+:::: {.solution data-latex=""}
+b. The [names]{class=KeywordTok} function can get this information.
+    ```{r}
+    answer10a <- df |> names()
+    ```
+    So the factors are \( \boxed{\text{age, sex, health_status, drug_treatment, mmse}} \)
+    
+c. The levels of `drug_treatment` can be found with
+    ```{r}
+    answer10b <- df |> select(drug_treatment) |> unique()
+    ```
+    So they are \( \boxed{\text{Placebo, Low dose, High Dose}} \).
+::::

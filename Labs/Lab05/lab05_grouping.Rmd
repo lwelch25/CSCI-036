@@ -1,0 +1,279 @@
+---
+title: 'Lab 5:  Grouping data together'
+author:  "Mark Huber"
+output:
+  html_document:
+    df_print: paged
+    css:  ../lab-style.css
+  pdf_document:
+    keep_tex: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+```
+
+## Summary
+
+In this lab you will learn how to group observations together with [summarize]{class=KeywordTok}, [filter]{class=KeywordTok}, and [mutate]{class=KeywordTok} to accomplish common data science tasks.
+
+## Setup
+
+First let's make sure that the `dplyr` and `ggplot2` packages are loaded.  Try
+```{r, warning = FALSE, message = FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+If you receive an error when you try this command, you might have to install the package using
+```
+install.packages("dplyr")
+```
+Once you have completed the installation, try the `library(dplyr)` command again.
+
+## Grouping data
+
+Consider the `ToothGrowth` data built into R.
+
+```{r}
+ToothGrowth |> head()
+```
+
+Use of `?ToothGrowth` reveals that this data set consists of observations of 60 guinea pigs which received three dose levels of vitamin C (0.5, 1, and 2 mg / day).  The dose was delivered either using orange juice (coded as `OJ` in the `supp` variable) or ascorbic acid (coded as `VC` in the `supp` variable.)  The `len` variable measures the length of cells responsible for tooth growth.  
+
+Overall the average length of the cells can be found using [summarize]{class=KeywordTok}.
+
+```{r}
+ToothGrowth |>
+  summarize(avg_len = mean(len))
+```
+
+Scientifically, what experiments like this are intended to show is whether or not the dose and/or method of delivery have an affect on the length of the cells.  To understand this, it is necessary to find the average length for each of the different doses.
+
+That is where *grouping data* comes in.  By breaking the observations into groups, and finding the average for each group, the experimenters can get an idea of what the growth does or does not look like.
+
+Break data into groups using the [group_by]{class=KeywordTok} function, which is part of the [dplyr]{class=KeywordTok} package.
+```{r}
+ToothGrowth |>
+  group_by(dose)
+```
+
+At first it looks exactly the same as before.  And you would be right, nothing has really changed in our dataset.  It still has 60 rows and 3 columns like before.  The function [group_by]{class=KeywordTok} is different from other [dplyr]{class=PackageName} package functions in that it doesn't change anything by itself, it just prepares the data for later use by other functions.  For instance, if `summarize(avg_len = mean(len))` is now applied to the dataset, something interesting happens.
+
+```{r}
+ToothGrowth |>
+  group_by(dose) |>
+  summarize(avg_len = mean(len))
+```
+
+Instead of just one value output, there are 3!  The observations were broken into three groups, based on if the dose was 0.5, 1, or 1.5.  Notice that our summarized table is nicely set up for a bar graph.
+
+```{r}
+ToothGrowth |>
+  group_by(dose) |>
+  summarize(avg_len = mean(len)) |>
+  ggplot() +
+    geom_bar(aes(x = dose, y = avg_len), 
+             stat  = "identity",
+             fill  = "blue",
+             color = "white")
+```
+
+:::: {.problem}
+Use [group_by]{class=KeywordTok} and [summarize]{class=KeywordTok} to find the sample median of `len` for each of the three dose values, and assign the resulting tibble to `answer01`.
+::::
+
+:::: {.solution}
+```{r}
+answer01 <- ToothGrowth |> 
+  group_by(dose) |>
+  summarize(median_len = median(len))
+```
+::::
+
+:::: {.problem}
+Use [group_by]{class=KeywordTok} and [summarize]{class=KeywordTok} to find the maximum value of `len` for each of the three dose values, and assign the resulting tibble to `answer02`.
+::::
+
+:::: {.solution}
+```{r}
+answer02 <- ToothGrowth |>
+  group_by(dose) |>
+  summarize(max_len = max(len))
+```
+::::
+
+
+
+The partitioning into groups can be done by more than one variable.  When the grouping is done by both `dose` and `supp`, there are six combinations of results.
+
+```{r}
+ToothGrowth |>
+  group_by(dose, supp) |>
+  summarize(avg_len = mean(len))
+```
+
+This can be used to create a side-by-side bar plot.
+```{r}
+ToothGrowth |>
+  group_by(dose, supp) |>
+  summarize(avg_len = mean(len)) |>
+  ggplot() +
+    geom_bar(aes(x = dose, y = avg_len, fill = supp), 
+             stat  = "identity",
+             color = "white",
+             position = "dodge")
+```
+
+:::: {.problem}
+Assign [TRUE]{class=OtherTok} or [FALSE]{class=OtherTok} to `answer03` to answer the following question:  As dose increases, the supplemental method has less of an effect on `len`.
+::::
+
+:::: {.solution}
+```{r}
+answer03 <- TRUE
+```
+::::
+
+
+:::: {.problem}
+Use [group_by]{class=KeywordTok} and [summarize]{class=KeywordTok} to find the sample median of `len` for each of the six combinations of dose values and supplement type.  Assign the resulting tibble to `answer04`.
+::::
+
+:::: {.solution}
+```{r}
+answer04 <- ToothGrowth |>
+  group_by(dose, supp) |>
+  summarize(median_len = median(len))
+```
+::::
+
+
+:::: {.problem}
+Which vector of dose and supp had the smallest median length?  Assign this result to `answer05` using a dose/supplement vector.  So if the dose of 1.0 and VC had the best result, your code would be 
+```{r}
+answer05 <- c(1.0, "VC")
+```
+::::
+
+:::: {.solution}
+```{r}
+answer05 <- c(0.5, "VC")
+```
+::::
+
+
+Recall that the function `[n]{class=KeywordTok}` counts the number of observations in a tibble.
+
+```{r}
+ToothGrowth |> 
+  summarize(n())
+```
+
+So by using `group_by(dose)` first, the counts will be broken up by dose.
+```{r}
+ToothGrowth |> 
+  group_by(dose) |>
+  summarize(n())
+```
+:::: {.problem}
+Use [group_by]{class=KeywordTok} and [summarize]{class=KeywordTok} to count how many guinea pigs were giving each type of supplement.  Put the resulting tibble in `answer06`.
+::::
+
+:::: {.solution}
+```{r}
+answer06 <- ToothGrowth |>
+  group_by(supp) |>
+  summarize(n())
+```
+::::
+
+
+# Using Mutate with group_by
+
+One way to *normalize* data is to divide by something with the same units.  For instance, if the `len` variable is divided by the average length, the resulting value is a unitless representation of how big that particular length is, with a value of 1 meaning it was exactly average.
+
+The [mutate]{class=KeywordTok} function can be used to accomplish this.
+```{r}
+ToothGrowth |>
+  mutate(rel_len = len / mean(len))
+```
+Now let's create a similar tibble, but normalize each one of the lengths by the mean *only for that dose group*.  To accomplish this, put the [group_by]{class=KeywordTok} function before the [mutate]{class=KeywordTok}.
+
+```{r}
+ToothGrowth |>
+  group_by(dose) |>
+  mutate(rel_len_by_dose = len / mean(len))
+```
+
+Note that when compared to the overall average, the first observation had relative length of 0.22.  But when only compared to the average in dose, the relative length was 0.396.  That is because the average length for the 0.5 dose was smaller than the overall average.
+
+:::: {.problem}
+Add the relative average to `ToothGrowth` with respect to both `dose` and `supp`, putting it in variable `rel_len_dose_supp`.  Place the resulting tibble in `answer07`.
+::::
+
+:::: {.solution}
+```{r}
+answer07 <- ToothGrowth |>
+  group_by(dose, supp) |>
+  mutate(rel_len_dose_supp = len/mean(len))
+```
+::::
+
+
+# [filter]{class=KeywordTok} with [group_by]{class=KeywordTok}
+
+Recall that filter can be used to only keep rows (observations aka data points) that meet a specified condition.  As with [summarize]{class=KeywordTok} and [mutate]{class=KeywordTok}, by using [group_by]{class=KeywordTok} that condition can be done within each group separately.  For instance, consider only keeping those observations that have above average length as measured by their average within the same level of dose.
+
+```{r}
+ToothGrowth |>
+  group_by(dose) |>
+  filter(len > mean(len))
+```
+::::: {.problem}
+Assign to `answer08` the number of observations whose length is above average for their dose level.
+:::::
+
+:::: {.solution}
+```{r}
+answer08 <- 27
+```
+::::
+
+
+::::: {.problem}
+Assign to `answer09` the number of observations whose length is above average for their dose level and supplement type.
+:::::
+
+:::: {.solution}
+```{r}
+answer09 <- 29
+```
+::::
+
+
+# [arrange]{class=KeywordTok} and [slice]{class=KeywordTok}
+
+Grouping observations also works with [arrange]{class=KeywordTok} and [slice]{class=KeywordTok}.  Consider the following.
+
+```{r}
+ToothGrowth |> 
+  group_by(dose) |> 
+  arrange(desc(len)) |> 
+  slice(1:2)
+```
+
+This groups the observations by `dose`, then arranges within each group in descending order, then slices (again within group) the first two.  Since there were three groups, the result is six observations of the largest and second largest `len` values within each dose level.
+
+::::: {.problem}
+Use [group_by]{class=KeywordTok}, [arrange]{class=KeywordTok}, and [slice]{class=Keyword} to find the third largest `len` value in each dose level.  Assign the resulting tibble to `answer10`.
+:::::
+
+:::: {.solution}
+```{r}
+answer10 <- ToothGrowth |>
+  group_by(dose) |>
+  arrange(desc(len)) |>
+  slice(3)
+```
+::::

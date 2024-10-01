@@ -1,0 +1,126 @@
+---
+title: 'Lab:  Working with MySQL'
+author: "Mark Huber"
+output: 
+  html_document:
+    css:  ../lab-style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#library(tidyverse)
+#library(RSQLite)
+#sales <- dbConnect(SQLite(), "data_output/sales.sqlite")
+```
+
+:::: {.problem data-latex=""}
+How many tables are there in the Northwind database?  Place your answer in the integer variable `answer01`.
+::::
+
+:::: {.solution}
+```{r}
+answer01 <- 29
+```
+::::
+
+
+:::: {.problem data-latex=""}
+After running the above commands, how many employees are there in the company?  Assign your numerical answer to `answer02`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+answer02 <- 9
+```
+::::
+
+:::: {.problem data-latex=""}
+How many variables are there in the relation `Employees`?  Assign the answer to `answer03`.
+::::
+
+:::: {.solution}
+```{r}
+answer03 <- 19
+```
+
+::::
+
+
+:::: {.problem data-latex=""}
+Which employee comes first when ordered by last name in alphabetical order?  Assign the last name as a string to `answer04`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+answer04 <- "Buchanan"
+```
+::::
+
+
+:::: {.problem data-latex=""}
+If the non-Sales Representatives are ordered by `LastName`, what is the `Title` of the first observation?  Place this as a character string into `answer05`.
+::::
+
+:::: {.solution}
+This is 
+```{r}
+answer05 <- "Sales Manager"
+```
+::::
+
+
+:::: {.problem data-latex=""}
+Adding to the above SQL query, order the employees by the new variable `Name` in descending order.  What is the `Name` value for the first employee in the list?  Assign this as a string to `answer06`.
+::::
+
+:::: {.solution}
+```{r}
+answer06 <- "Steven Buchanan"
+```
+::::
+
+
+:::: {.problem data-latex=""}
+Suppose that freight with cost over \$1000 is taxed at 12\%.  Create a query to find a table with the taxed freight cost that only contains those observations where the tax applies.  How many such observations are there?  Place the result into `answer07`.
+::::
+
+:::: {.solution}
+```{r}
+answer07 = 1
+```
+::::
+
+
+:::: {.problem data-latex=""}
+Create an SQL query that returns for each product (determined by `OrderID`) in the `Order Details` table, the number of times that product was ordered.  Note that for tables names like this with a space in them, you must surround the name by backticks (`) to indicate that it is all one name.  Place into `answer08` the number of times that `OrderID` number 10249 was ordered
+:::::
+
+:::: {.solution data-latex=""}
+```{r}
+answer08 <- 2
+```
+::::
+
+
+:::: {.problem data-latex=""}
+The `ContactName` within the `Customers` dataset holds the name of the person to contact at a particular company.  
+
+What is the name of the contact at the company that placed order with ID number 10290?  Place this string into the variable `answer09`.
+::::
+
+:::: {.solution}
+```{r}
+answer09 = "Pedro Afonso"
+```
+::::
+
+
+:::: {.problem data-latex=""}
+By looking at the above report, what is the company with phone number (171) 555-7788?  Place this string in `answer10`.
+::::
+
+:::: {.solution}
+```{r}
+answer10 <- "Around the Horn"
+```
+::::

@@ -1,0 +1,258 @@
+---
+title: 'Homework 10 CSCI 036 Solutions'
+author: 'Lucas Welch'
+output: 
+  html_document:
+    css:  ../homework-style.css
+  pdf_document:
+    includes:
+      in_header:  "../homework-style.tex"
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+#Color Format
+colFmt = function(x,color){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\textcolor{",color,"}{",x,"}",sep="")
+  else if(outputFormat == 'html')
+    paste("<font color='",color,"'>",x,"</font>",sep="")
+  else
+    x
+}
+#Box Format
+boxFmt = function(x){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\framebox{\\hspace*{1em} ", x, "}")
+  else if(outputFormat == 'html')
+    paste("<span class=\"boxed\">", x , "</span>")
+  else
+    x
+}
+library(tidyverse)
+```
+
+Due:  Friday, 2022-12-02
+
+# Instructions
+
+When your .Rmd file knits and is complete, please submit to the autograder in Gradescope.
+
+\newpage
+
+:::: {.problem data-latex=""}
+Consider the following hexadecimal numbers:
+\[
+\texttt{20, A3, 11}
+\]
+These can be written as decimal numbers in a vector as:
+```{r}
+example01 <- c(32, 163, 17)
+```
+
+Now consider the following hexadecimal numbers:
+\[
+\texttt{4d, 87, A4, FF}
+\]
+Assign the decimal equivalents of these numbers to the vector `answer01`.
+
+
+::::
+
+:::: {.solution}
+
+```{r}
+answer01 <- c(77, 135, 164, 255)
+```
+
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+Consider the following hexadecimal numbers:
+\[
+\texttt{20, A3, 11}
+\]
+These can be written as binary numbers in a vector using strings:
+```{r}
+example02 <- c("00100000", "10100011", "00010001")
+```
+
+Find the binary equivalent of the following hexadecimal numbers:
+\[
+\texttt{4d, 87, A4, FF}
+\]
+and store them as a vector of strings in `answer02`.
+::::
+
+:::: {.solution}
+
+
+```{r}
+answer02 <- c("01001101", "10000111", "10100100", "11111111")
+```
+
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+Find the decimal equivalent of the following binary numbers:
+\[
+\texttt{10101010, 00000000, 11111111, 01011110}
+\]
+Place the values into a vector of length 4 called `answer03`.
+::::
+
+:::: {.solution data-latex=""}
+
+```{r}
+answer03 <- c(170, 0, 255, 94)
+```
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+Find the hexadecimal equivalent of the following binary numbers:
+\[
+\texttt{10101010, 00000000, 11111111, 01011110}
+\]
+Store this as a vector of strings of length 4 called `answer04`.
+::::
+
+:::: {.solution data-latex=""}
+
+```{r}
+answer04 <- c("AA", "00", "FF", "5E")
+```
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+Using [charToRaw]{class=KeywordTok}, find the ASCII values for the following characters as a vector of hexadecimal values stored as string.  Then convert these hexadecimal values to decimal values and assign the resulting vector to `answer05`.
+\[
+\texttt{AZaz%!}
+\]
+::::
+
+:::: {.solution data-latex=""}
+
+
+```{r}
+charToRaw("AZaz%!")
+```
+
+```{r}
+answer05 <- c(65, 90, 97, 122, 37, 33)
+```
+
+
+
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+What character is `U+0072`?  Assign this character as a string to `answer06`.
+::::
+
+:::: {.solution}
+
+```{r}
+answer06 <- ("r")
+```
+
+
+```{r}
+cat("\U0072")
+```
+
+
+
+
+
+
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+How many bytes does `U+0072` require for encoding in UTF-8?  Assign this integer to `answer07`.
+::::
+
+:::: {.solution data-latex=""}
+
+```{r}
+answer07 <- 1
+```
+
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+Given the UTF-8 value `0xC0A6`, how many bits are used to encode the Unicode character?  Assign this integer to `answer08`.
+::::
+
+:::: {.solution data-latex=""}
+
+
+```{r}
+answer08 <- 11
+```
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+If some data has been labeled in a dataset, \_\_\_\_\_\_ learning is used.  Fill in the blank and assign the result as a string to `answer09`.
+::::
+
+:::: {.solution}
+
+```{r}
+answer09 <- "supervised"
+```
+
+
+
+::::
+
+\newpage
+
+:::: {.problem data-latex=""}
+If the goal is to learn features of a dataset without any prior labeling, \_\_\_\_\_\_ learning is used.  Fill in the blank and assign the result as a string to `answer10`.
+::::
+
+:::: {.solution}
+
+```{r}
+answer10 <- "unsupervised"
+  
+```
+
+
+::::
+

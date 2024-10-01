@@ -1,0 +1,642 @@
+---
+title: 'Lab:  Predicting categorical data'
+author: "Mark Huber"
+output: 
+  html_document:
+    css:  ../lab-style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#library(tidyverse)
+#library(RSQLite)
+#sales <- dbConnect(SQLite(), "data_output/sales.sqlite")
+```
+
+## Summary {-}
+
+In this lab you will learn how to classify data using logistical regression and a Support Vector Machine.
+
+## Source {-}
+
+This lab is based upon a blog post at https://www.datacamp.com/community/tutorials/support-vector-machines-r.  Check it out for some nice large pictures of SVM's in action!
+
+## Libraries
+
+This lab requires the [tidyverse]{class=PackageName}, [e1071]{class=PackageName}, and [modelr]{class=PackageName} libraries.
+```{r}
+library(tidyverse)
+library(e1071)
+library(modelr)
+```
+
+# Supervised learning
+
+Suppose that you have data which is *labeled*, which means that the data has been broken down into categories.  One common task is to, given this data, try to predict what categories an unlabeled observation is.
+
+This is an example of *supervised learning*.  This is often considered a part of *machine learning*, because the labeled data is being used to estimate parameters of a model that will then be used in an algorithm to predict the category of future observations.
+
+Consider the following set of training data.
+
+```{r}
+training_data <- 
+  tibble(
+    x = c(0.05, 0.4, 0.05, 0.9, 0.4, 0.5, 0.3),
+    y = c(1, 0.7, 0.8, 0.5, 0.05, 0.3, 0.05),
+    class = factor(c(1, 1, 1, 2, 2, 2, 2))
+  )
+training_data
+```
+
+Suppose that the `x` and `y` values are being used to predict `class`.  Creating a scatterplot of the points together with class information can be done as follows.
+```{r}
+g <-
+  training_data |>
+    ggplot() +
+      geom_point(aes(x, y, 
+                     shape = class, color = class)) +
+      theme_minimal()
+g
+```
+
+# Logistical regression
+
+For two level factors, *logistical regression* (often abbreviated to *logit regression*) is a way of predicting the factor based on numerical factors.  
+
+In R, the [glm]{class=KeywordTok} function can be used with parameter `family = "binomial"` to run a logit model.
+
+```{r}
+mod_logit1 <- glm(class ~ x,
+                  data = training_data,
+                  family = "binomial")
+```
+
+As with all models, the functions of the package [modelr]{class=PackageName} can be used to predict values from the models.  Specifically, [add_predictions]{class=KeywordTok} can be used with `type` parameter set to `"response"` to predict the class.
+
+```{r}
+training_data |>
+  add_predictions(mod_logit1,
+                  type = "response")
+```
+
+Note that the logit does not give the class, but instead gives a number from 0 to 1 that indicates the belief that the point should be in class 1 or 2.  So the \( (x, y) = (0.5, 0.3) \) prediction is 0.8996, indicating a strong prediction that the class is 2.
+
+By setting a threshold of 0.5, the prediction can be set to either class 1 or 2.
+
+```{r}
+training_data |>
+  add_predictions(mod_logit1,
+                  type = "response") |>
+  mutate(pred_class = ifelse(pred >= 0.5, 2, 1))
+```
+
+The *predictive accuracy* can be found by checking the percentage of predictions that are correct for the data.
+
+```{r}
+training_data |>
+  add_predictions(mod_logit1,
+                  type = "response") |>
+  mutate(pred_class = ifelse(pred >= 0.4, 2, 1)) |>
+  summarize(`Predictive accuracy` = mean(pred_class == class))
+```
+:::: {.problem data-latex=""}
+If the threshold was set to be 40% or higher for class 2, what would the predictive accuracy of model `mod_logit1` be?  Assign your answer to `answer01`.
+::::
+
+:::: {.solution}
+```{r}
+answer01 <- 0.8571429
+```
+::::
+
+:::: {.problem data-latex=""}
+Create a logit model that predicts `class` using both `x` and `y` instead of just `x` as above.  If your model is used with a threshold of 50%, what is the predictive accuracy?  Store the result as `answer02`.
+::::
+
+```{r}
+mod_logit2 <- glm(class ~ x + y, 
+                  data = training_data,
+                  family = "binomial")
+```
+
+```{r}
+training_data |>
+  data_grid(x, y) |> 
+  add_predictions(mod_logit2,
+                  type = "response")
+```
+
+```{r}
+training_data |>
+  add_predictions(mod_logit2,
+                  type = "response") |>
+  mutate(pred_class = ifelse(pred >= 0.5, 2, 1)) |>
+  summarize(`Predictive accuracy` = mean(pred_class == class))
+```
+
+:::: {.solution data-latex=""}
+```{r}
+answer02 <- 1
+```
+::::
+
+# Support Vector Machines
+
+Graphically, the two classes seem to occupy different parts of the two dimensional space of the predictors.  So is it possible to use the geometry of the situation to make predictions?
+
+One common way of doing this is called a *support vector machine*, or *SVM* for short.  The idea here is to place a *hyperplane* between the two sets of points.  If you are working with \( n \) predictors, then the hyperplane is in \( n - 1 \) dimensional space.  
+
+For example, if there are two predictors, then the hyperplane is 1 dimensional, that is, it is a line.  Here are three possible lines that could be used to separate the data into two clusters.
+
+```{r}
+g + 
+  geom_abline(aes(intercept = 0.25, slope = 1), 
+              color = "red") +
+  geom_abline(aes(intercept = 0.1, slope = 1), 
+              color = "green") +
+  geom_abline(aes(intercept = 0.15, slope = 1.2), 
+              color = "blue")
+```
+Note that for the line written as 
+\[
+-0.25 - x + y = 0,
+\]
+the \( y \)-intercept form is 
+\[
+y = 0.25 + x,
+\]
+which is what is needed for [geom_abline]{class=KeywordTok}.
+
+One way to try to get a good line to separate the data is to optimize the distance between the line and the closest point on either side.  
+
+For a line given by 
+\[
+ax + by + c = 0,
+\]
+and a point \( (x_0, y_0) \), the distance from the point to the line is given by the formula
+\[
+\operatorname{dist}(ax + by + c = 0, (x_0, y_0)) = \frac{|a x_0 + b y_0 + c|}{\sqrt{a^2 + b^2}}.
+\]
+
+Let's use the [mutate]{class=KeywordTok} functions to calculate this distance for the red line.
+
+```{r}
+a <- -1
+b <- 1
+c <- -0.25
+training_data |>
+  mutate(d = abs(a * x + b * y + c) / 
+              sqrt(a^2 + b^2))
+```
+
+```{r}
+a <- -1
+b <- 1
+c <- -0.25
+training_data |>
+  group_by(class) |>
+  summarize(d = min(abs(a * x + b * y + c) / 
+                    sqrt(a^2 + b^2)))
+```
+
+:::: {.problem data-latex=""}
+Find the distance between the green line above and the class 1 points.  Place the answer into `answer03`.
+::::
+
+ 
+```{r}
+a <- -1
+b <- 1
+c <- - 0.1
+training_data |>
+  mutate(d = abs(a * x + b * y + c) / 
+              sqrt(a^2 + b^2))
+```
+
+```{r}
+a <- -1
+b <- 1
+c <- -0.10
+training_data |>
+  group_by(class) |>
+  summarize(d = min(abs(a * x + b * y + c) / 
+                    sqrt(a^2 + b^2)))
+```
+
+:::: {.solution}
+```{r}
+answer03 <- 0.1414214	
+```
+::::
+
+To find the coefficients for \( a \), \( b \), and \( c \) that minimize the largest distance to the points, the [svm]{class=KeywordTok} function from the [e1071]{class=PackageName} can be used.
+
+Let's create an SVM model for this data.
+```{r}
+mod_svm1 <- svm(class ~ x + y,
+                data = training_data,
+                kernel = "linear")
+print(mod_svm1)
+```
+
+It actually creates 3 support vectors to separate data.  But let's look at what the coefficients give:
+```{r}
+coef(mod_svm1)
+```
+
+Let's put the line with the data.  Remember that the line \( c_0 + c_1 x + c_2 y \) needs to be rewritten as \( y = -c_0 / c_2 - (c_1 / c_2) x \) for [geom_abline]{class=KeywordTok}. 
+```{r}
+g +
+  geom_abline(aes(intercept = 0.2901408 / 1.0519793, slope = 0.4136255 / 1.0519793), 
+            color = "cyan")
+```
+
+:::: {.problem data-latex=""}
+Find the distance between the line that [svm]{class=KeywordTok} produces, and the class 1 points.  Place the answer into `answer04`.
+::::
+
+```{r}
+a <- -0.4136255
+b <-  1.0519793 
+c <-  -0.2901408
+training_data |>
+  group_by(class) |>
+  summarize(d = min(abs(a * x + b * y + c) / 
+                    sqrt(a^2 + b^2)))
+```
+
+:::: {.solution}
+```{r}
+answer04 <- 0.2484084	
+```
+
+::::
+
+:::: {.problem data-latex=""}
+Find the distance between the line that [svm]{class=KeywordTok} produces, and the class 2 points.  Place the answer into `answer05`.
+::::
+
+:::: {.solution}
+```{r}
+answer05 <- 0.1206804	
+```
+::::
+
+As seen in the last two questions, the line given by the coefficients of the model doesn't quite make the smallest distance to the two classes equal.  It does try to make these distances close.
+
+Let's generate a larger dataset to try out the SVM.  More points means the slope of the line will be better determined.
+```{r}
+set.seed(10111)
+n <- 40
+r <- rnorm(n)
+df <- tibble(
+  x = c(r, r), 
+  y = c(r + rnorm(n), r + 10 + rnorm(40)),
+  class = factor(c(rep("1", n), rep("2", n)))
+)
+
+ggplot(df) +
+  geom_point(aes(x, y, shape = class, color = class)) +
+  theme_minimal()
+```
+
+```{r}
+mod_svm2 <- svm(class ~ x + y,
+                data = df,
+                kernel = "linear")
+print(mod_svm2)
+```
+
+As with any model, predictions can be added using this model.
+```{r}
+df |>
+  add_predictions(mod_svm2)
+```
+
+The predictive accuracy of these predictions will be 100% because the data can be broken into two disparate clusters.
+```{r}
+df |>
+  add_predictions(mod_svm2) |>
+  summarize(accuracy = mean(class == pred))
+```
+If the points overlap, it might not be possible to separate them cleanly with a line.
+
+```{r}
+set.seed(123456)
+n <- 40
+r <- rnorm(n)
+df2 <- tibble(
+  x = c(r, r), 
+  y = c(r + rnorm(n), r + 2 + 2 * rnorm(40)),
+  class = factor(c(rep("1", n), rep("2", n)))
+)
+
+ggplot(df2) +
+  geom_point(aes(x, y, shape = class, color = class)) +
+  theme_minimal()
+```
+
+```{r}
+mod_svm3 <- svm(class ~ x + y,
+                data = df2,
+                kernel = "linear")
+```
+
+Let's show the points for which the predictions are wrong.
+```{r}
+df2 |>
+  add_predictions(mod_svm3) |>
+  filter(class != pred) |>
+  ggplot() +
+  geom_point(aes(x, y, shape = class, color = class)) +
+  theme_minimal()
+```
+
+:::: {.problem data-latex=""}
+What is the predictive accuracy of the `mod_svm3` model?  Place the answer in `answer06`.
+::::
+
+```{r}
+df2 |>
+  add_predictions(mod_svm3) |>
+  summarize(accuracy = mean(class == pred))
+```
+
+:::: {.solution data-latex=""}
+```{r}
+answer06 <- 0.8
+```
+::::
+
+# Features
+
+Of course, the situation could be even worse.  A little bit of trigonometry can generate points over a circle and a ring.  
+
+```{r}
+# One cluster in center, one ring around it
+set.seed(123456)
+n <- 40
+th1 <- 2 * pi * runif(n)
+r1 <- sqrt(runif(n))
+th2 <- 2 * pi * runif(n)
+r2 <- 0.5 * runif(n) + 2
+df3 <- tibble(
+  x = c(r1 * cos(th1), r2 * cos(th2)), 
+  y = c(r1 * sin(th1), r2 * sin(th2)), 
+  class = factor(c(rep("1", n), rep("2", n)))
+)
+
+ggplot(df3) +
+  geom_point(aes(x, y, shape = class, color = class)) +
+  coord_fixed() +
+  theme_minimal()
+```
+
+The human eye can easily pick out the clusters here, but any straight line is doomed to either put too much together or too little.  Try building a linear model first.
+
+```{r}
+mod_svm4 <- svm(class ~ x + y,
+                data = df3,
+                kernel = "linear")
+```
+
+:::: {.problem data-latex=""}
+Find the predictive accuracy of `mod_svm4` for `df3`.  Place your answer in `answer07`.
+::::
+
+```{r}
+df3 |>
+  add_predictions(mod_svm4) |>
+  summarize(accuracy = mean(class == pred))
+```
+
+
+:::: {.solution}
+```{r}
+answer07 <- 0.7375	
+```
+
+::::
+
+Not great!
+
+To do better, a *feature* can be added to the points.  Suppose that the distance from the origin is added as a variable.
+
+```{r}
+df3 |>
+  mutate(r = sqrt(x^2 + y^2))
+```
+
+Now a constant `r` can be used to separate the center cluster from the ring cluster.
+
+```{r}
+x1 <- seq(-1, 1, by = 0.01)
+circle <- tibble(
+  x = x1,
+  y = 1.5 * sqrt(1 - x1^2)
+)
+
+ggplot(df3) +
+  geom_point(aes(x, y, shape = class, color = class)) +
+  geom_line(data = circle, aes(1.5 * x, y), 
+            color = "blue") +
+  geom_line(data = circle, aes(1.5 * x, -y), 
+            color = "blue") +
+  coord_fixed()
+```
+
+Let's add this new feature and build an SVM model.
+```{r}
+df3_r <-
+  df3 |>
+    mutate(r = sqrt(x^2 + y^2))
+
+mod_svm5 <- svm(class ~ x + y + r,
+                data = df3_r,
+                kernel = "linear")
+
+coef(mod_svm5)
+```
+
+Graphing this svm gives something very close to a circle:
+
+![](circular_svm.gif)
+
+Let's see how accurate the new model is!
+
+```{r}
+df3_r |>
+  add_predictions(mod_svm5) |>
+  summarize(accuracy = mean(class == pred))
+```
+So by adding one feature it is now possible to prediction all of the training data with a line that includes the original predictors plus a feature.
+
+```{r}
+df3_r |>
+  add_predictions(mod_svm5) |>
+  ggplot() +
+    geom_point(aes(x, y, 
+                   shape = class, color = class, 
+                   size = pred)) +
+    coord_fixed()
+```
+
+Consider the following data.
+```{r}
+# One cluster in center, one ring around it
+set.seed(123456)
+n <- 40
+th1 <- 2 * pi * runif(n)
+r1 <- 2 * sqrt(runif(n))
+th2 <- 2 * pi * runif(n)
+r2 <- 1.5 * runif(n) + 1
+df4 <- tibble(
+  x = c(r1 * cos(th1), r2 * cos(th2)), 
+  y = c(r1 * sin(th1), r2 * sin(th2)), 
+  class = factor(c(rep("1", n), rep("2", n)))
+)
+
+ggplot(df4) +
+  geom_point(aes(x, y, shape = class, color = class)) +
+  coord_fixed() +
+  theme_minimal()
+```
+
+:::: {.problem data-latex=""}
+Using a feature \( r = \sqrt{x^2 + y^2} \), create an SVM and find the predictive accuracy for `df4`.  Place your answer into `answer08`.
+::::
+
+```{r}
+df4_r <-
+  df4 |>
+    mutate(r = sqrt(x^2 + y^2))
+
+mod_svm6 <- svm(class ~ x + y + r,
+                data = df4_r,
+                kernel = "linear")
+
+coef(mod_svm6)
+```
+
+```{r}
+df4_r |>
+  add_predictions(mod_svm6) |>
+  summarize(accuracy = mean(class == pred))
+```
+
+
+:::: {.solution}
+```{r}
+answer08 <- 0.675	
+```
+::::
+
+# Non-linear SVM's
+
+Even more general features can be created.  Consider a dataset from *The Elements of Statistical Learning* by Hastie, Tibshirani, and Friedman.  After downloading the file from the course website, place it in the working directory.  It is an .rda file, so loads directly into a data frame in R.
+```{r}
+load(file = "ESL.mixture.rda")
+```
+
+The components of this data frame can be found with the [names]{class=KeywordTok} function.
+```{r}
+ESL.mixture |> names()
+```
+
+Let's take this data and place it into a tibble.
+```{r}
+df6 <- tibble(
+  x     = ESL.mixture$x[,1], 
+  y     = ESL.mixture$x[,2], 
+  class = factor(ESL.mixture$y)
+)
+```
+
+```{r}
+df6 |>
+  ggplot() +
+  geom_point(aes(x, y, color = class, shape = class))
+```
+
+Rather than create a feature, the `"radial"` style kernel will be used with [svm]{class=KeywordTok}.  The `cost` parameter is set to a numerical value to decide how much to penalize errors in the prediction of training data.
+
+```{r}
+mod_svm6 <- svm(class ~ ., 
+                data = df6, 
+                scale = FALSE, 
+                kernel = "radial", 
+                cost = 5)
+```
+
+The radial kernels are not just limited to simple circles.  Instead, they can spread out over a wider area.  The following plots the area assigned to class 0 and class 1.
+
+```{r}
+grid <- df6 |>
+  data_grid(x = seq_range(x, 100), 
+            y = seq_range(y, 100)) |>
+  add_predictions(mod_svm6)
+
+ggplot() +
+  geom_point(data = df6, 
+             aes(x, y, color = class, shape = class)) +
+  geom_point(data = grid, 
+             aes(x, y, color = pred), 
+             alpha = 0.05)
+```
+
+The predictive accuracy against the training data is very good, but not 100%.
+```{r}
+df6 |>
+  add_predictions(mod_svm6) |>
+  summarize(accuracy = mean(class == pred))
+```
+:::: {.problem data-latex=""}
+Suppose that the cost of mispredictios is reduced to 1.  Then the predictions would look like this:
+
+```{r}
+mod_svm7 <- svm(class ~ ., 
+                data = df6, 
+                scale = FALSE, 
+                kernel = "radial", 
+                cost = 1)
+```
+
+Find the predictive accuracy of `mod_svm7`, and assign it to `answer09`.
+::::
+
+
+```{r}
+df6 |>
+  add_predictions(mod_svm7) |>
+  summarize(accuracy = mean(class == pred))
+```
+
+:::: {.solution}
+```{r}
+answer09 <- 0.8	
+```
+::::
+
+:::: {.problem data-latex=""}
+Create a new SVM with radial kernel and cost equal to 10.  Find the predictive accuracy of your model, and assign it to `answer10`.
+::::
+
+```{r}
+mod_svm8 <- svm(class ~ ., 
+                data = df6, 
+                scale = FALSE, 
+                kernel = "radial", 
+                cost = 10)
+```
+
+```{r}
+df6 |>
+  add_predictions(mod_svm8) |>
+  summarize(accuracy = mean(class == pred))
+```
+
+:::: {.solution}
+```{r}
+answer10 <- 0.83	
+```
+::::

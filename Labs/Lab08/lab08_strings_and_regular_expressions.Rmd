@@ -1,0 +1,261 @@
+---
+title: 'Lab:  Strings and Regular Expressions'
+author: "Mark Huber"
+output: 
+  html_document:
+    css:  ../lab-style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+options(tibble.width = 62)
+```
+
+## Packages
+
+The packages needed for the lab today are:
+
+* [tidyverse]{class=PackageName}  This includes the following three parts.
+
+    * [stringr]{class=PackageName} for finding regular expressions in strings.
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+```
+
+## Detecting patterns of letters
+
+A *regular expression*, or *regex* for short, is a way of describing patterns of characters that might appear within a string.  Let's set up an example vector of strings to try this out.
+
+```{r}
+s <- c("abba", "cdas", ".cds", "hg77", "cdcd", "cd")
+```
+
+
+The simplest type of regex is just a search for a fixed set of characters.  This can be created by putting the letters into a string, and putting it through the function [regex]{class=KeywordTok}
+
+```{r}
+regex("cd")
+```
+
+A regex has a lot of properties!  When placed into a function like [str_detect]{class=KeywordTok}, the regex looks at each string in the input vector of character strings, and decides [TRUE]{class=OtherTok} or [FALSE]{class=OtherTok} if the pattern appears.
+
+```{r}
+str_detect(s, regex("cd"))
+```
+
+The output indicates that the pattern was found in the second, third, fifth, and sixth entries of the vector `s`.  A vector whose components are true or false is also called a *boolean vector*.  
+
+The [str_detect]{class=KeywordTok} function could also be used to create a new function.  For instance, the following creates a function `find_cd` that searches the input vector of character strings for the `cd` pattern.
+
+```{r}
+find_cd <- function(t) str_detect(t, regex("cd"))
+find_cd(s)
+```
+
+:::: {.problem}
+Write a function `answer01` that takes as input a vector of character strings, and returns as output a boolean vector that says true or false whether each component of the vector contains the letters `bb`.
+::::
+
+```{r}
+answer01 <- function(t) str_detect(t, regex("bb"))
+answer01(s)
+```
+
+:::: {.solution}
+
+::::
+
+If you forget to write the [regex]{class=KeywordTok} function, don't worry:  if functions like [str_detect]{class=KeywordTok} see only a string as input, they will apply the regex function first to turn it into a regular expression.
+
+```{r}
+find_cd2 <- function(t) str_detect(t, "cd")
+find_cd2(s)
+```
+
+## Anchors away!
+
+An *anchor* can force the pattern to be at the beginning or end of the string.  The circumflex `^` forces the pattern to be at the beginning, the dollar sign `$` forces the pattern to be at the end, and both can be used as well.
+
+```{r}
+tibble(
+  s,
+  `has cd at beginning` = str_detect(s, "^cd"),
+  `has cd at end` = str_detect(s, "cd$"),
+  `has cd at beginning and end` = str_detect(s, "^cd$"),
+)
+```
+
+Note that `^cd$` means that *the same two letters cd* have to be at the beginning and end.  Having two different pairs of letters as in `cdcd` does not cut it.
+
+:::: {.problem data-latex=""}
+Write a function `answer02` that takes as input a vector of character strings, and returns true if and only if the string starts with the letters `Agent`.
+::::
+
+```{r}
+answer02 <- function(t) str_detect(t, "^Agent")
+answer02(s)
+```
+
+:::: {.solution data-latex=""}
+
+::::
+
+:::: {.problem data-latex=""}
+Write a function `answer03` that takes as input a vector of character strings, and returns true if and only if the string ends with the letters `Smith`.
+::::
+
+```{r}
+answer03 <- function(t) str_detect(t, "Smith$")
+answer03(s)
+```
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+
+## The ultimate wildcard:  the dot
+
+A dot (aka period) `.` that appears in a regex will match any character.  So the regex `.c` will match any character followed by a `c`.
+
+```{r}
+tibble(
+  s,
+  `has character followed by a c` = str_detect(s, ".c")
+)
+```
+
+Note that the actual period in `".cds"` is a character, so it matched the wildcard character `.`.  But `dc` also matched the wildcard character in `.c`, so the fifth hit the pattern as well.
+
+:::: {.problem data-latex=""}
+Create a function `answer04` that takes an input a vector of character strings, and returns a boolean vector that is true if and only if the string contains an `a` followed by any character followed by a `c`.
+::::
+
+```{r}
+answer04 <- function(t) str_detect(t, "(a.c)")
+answer04(s)
+```
+
+:::: {.solution data-latex=""}
+
+::::
+
+## Extracting patterns
+
+To see the pattern found with the wildcard, use [str_extract]{class=KeywordTok}.
+
+```{r}
+tibble(
+  s,
+  `character followed by a c` = str_extract(s, ".c")
+)
+```
+
+:::: {.problem data-latex=""}
+Write a function `answer05` that takes as input a vector of character strings, and returns a pattern that is any character followed by a `4`.  If the pattern does not exist in the string, it should return [NA]{class=OtherTok}.
+::::
+
+```{r}
+answer05 <- function(t) str_extract(t, ".4")
+answer05(s)
+```
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+:::: {.problem data-latex=""}
+Write a function `answer06` that takes as input a vector of character strings, and returns a boolean vector that checks if the string is exactly three characters, the first of which must be an `a`, and the third must be a `c`.
+::::
+
+```{r}
+answer06 <- function(t) str_detect(t, "^a.c$")
+answer06(s)
+```
+
+:::: {.solution data-latex=""}
+
+::::
+
+## Using backslashes within strings
+
+When a string is converted into a regex using [regex]{class=KeywordTok}, it is important to understand how to create *escape characters*.  An escape characters is a backslash `\` followed by another character.  For instance, `\.` is the escape character that matches a `.` in the target string.
+
+But if a backslash is used within a string, then that itself becomes an escape character.  For instance, `\n` is the escape character for newline in a string, so the following prints over two lines.
+```{r}
+cat("This is the first line.\nThis is the second line.")
+```
+
+So to make a backslash within the regex, the escape character for backslash needs to be used within the string!  This is `\\`.  So put this in the string whenever you want a `\` to appear in the regex.
+
+For instance, the following expression searches for the pattern of any character followed by a dot in the string.
+```{r}
+str_extract("srt.42", regex(".\\."))
+```
+
+:::: {.problem data-latex=""}
+Write a function `answer07` that takes a vector of character strings, and for each extracts the first appearance of a dot followed by a c followed by another dot.
+::::
+
+```{r}
+answer07 <- function(t) str_extract(t, "\\.c\\.")
+answer07(s)
+```
+:::: {.solution data-latex=""}
+
+::::
+
+:::: {.problem data-latex=""}
+Another useful escape character is the quote symbol `"`.  As with a `.`, the escape character is `\"`.  To use this as part of your string, it is useful to surround your string with quote marks `'` rather than the double quote `"`.  Also, remember that you need to use two backslashes in a string to make one backslash in a regex.  Write a function `answer08` that takes a vector of character strings, and checks that there is a quote at the beginning of a string, returning a boolean vector.
+::::
+
+```{r}
+answer08 <- function(t) str_detect(t, '\\"')
+answer08(s)
+```
+
+
+:::: {.solution data-latex=""}
+
+::::
+
+
+## Brackets
+
+Brackets in regular expressions are another way to create wildcards.  For instance, the regex `[abc]` will matches either an `a`, a `b`, or a `c`.  Hyphens can be used to make ranges.  For instance, `[3-7]` will match digits from 3 through 7.  These can be combined.  For instance, [a-c3-7] will match the letters `a` through `c` or the digits `3` through `7`.
+
+:::: {.problem data-latex=""}
+Write a function `answer09` that takes as input a vector of strings and returns a boolean vector that is true for each component if the string contains either the digits 0 through 9 or the letters A through G.
+::::
+```{r}
+answer09 <- function(t) str_detect(t, "[A-G0-9]")
+answer09(s)
+```
+
+:::: {.solution data-latex=""}
+
+::::
+
+## Repeating a letter or expression
+
+The `+` sign can be used after a symbol to repeat it one or more times, and the Kleene Star `*` can be used to repeat it zero or more times.  Parentheses can be used to group patterns or objects.
+
+For instance, to pull out the letters between `b` and `e` including the endpoints, use:
+```{r}
+str_extract("abghweueriv", "b[a-z]*e")
+```
+
+:::: {.problem data-latex=""}
+Write a function `answer10` that extracts from an input vector of strings the pattern of a hyphen followed by zero or more digits 0 through 9 followed by a hyphen.
+::::
+```{r}
+answer10 <- function(t) str_extract(t, "-[0-9]*-") 
+answer10(s)
+```
+
+:::: {.solution data-latex=""}
+
+::::

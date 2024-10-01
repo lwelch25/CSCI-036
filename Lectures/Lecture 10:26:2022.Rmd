@@ -1,0 +1,149 @@
+---
+title: "Lecture 10/26/2022"
+author: "Lucas Welch"
+date: "2022-10-26"
+output: html_document
+---
+
+Today: 
+Factors /variables / measurements 
+Levels
+Function for forcats (package)
+
+Factor = Something that you can measure is a factor
+[In tidydata, factors are col names]
+data |> names()
+output is a factor
+
+Levels = The values that a factor can take on are called levels
+Ex: iris |> select(species) |> unique()
+
+Factor function: Takes in vector values and outputs factor (data entries)
+
+```{r}
+factor1 <- c("Dec", "Dec", "Apr", "Jan")
+```
+Theres a couple things  that an go wrong
+
+```{r}
+factor2 <- c("Duc", "Dec", "Apr", "Jan")
+```
+Would like to have a check to see whether or not the data entries follow the level restrictions 
+```{r}
+sort(factor1)
+```
+By default, 'sort' sorts thing alphabetically(or numerical). Want month sort
+
+We can use the factor function to take this data and add some levels to it
+
+```{r}
+factor1 |> 
+  factor(level = c("Jan", "Apr", "Dec")) |>
+  sort()
+```
+
+```{r}
+factor1 |> 
+  factor()
+```
+Alphabetical is NOT what we want so we have to use levels
+
+```{r}
+factor2 |>
+  factor(levels = c("Jan", "Apr", "Dec"))
+```
+```{r}
+library(forcats)
+```
+
+```{r}
+gss_cat
+```
+```{r}
+gss_cat |>
+  ggplot() +
+  geom_bar(aes(x = relig)) +
+  coord_flip()
+```
+```{r}
+gss_cat |>
+  pull(relig) |>
+  unique()
+```
+
+```{r}
+gss_cat |>
+  arrange(relig) |>
+  pull(relig) |>
+  unique()
+```
+
+Note 'arrange' does **NOT** sort the levels, it only sorts the values
+
+```{r}
+relig_sum <- gss_cat |>
+  group_by(relig) |>
+  summarize(age = mean(age, na.rm = TRUE), tvhours = mean(tvhours, na.rm = TRUE), 
+            n= n())
+relig_sum
+```
+```{r}
+relig_sum |>
+  ggplot() +
+  geom_bar(aes(x = relig, y = tvhours), stat = 'identity') +
+  coord_flip()
+```
+
+Want to order the religions by tvhours
+
+```{r}
+relig_sum |>
+  ggplot() +
+  geom_bar(aes(x = fct_reorder(relig, tvhours), y = tvhours), stat = "identity") +
+  coord_flip()
+```
+OR you cna do...
+
+```{r}
+relig_sum |>
+  mutate(relig_bytv = fct_reorder(relig, tvhours)) |>
+  ggplot() +
+  geom_bar(aes(x = relig_bytv, y = tvhours), stat = "identity") +
+  coord_flip()
+```
+Same thing just different style preference
+
+#line charts and factors 
+
+```{r}
+by_age <- 
+  gss_cat |> 
+  filter(!is.na(age)) |> 
+  count(age, marital) |>
+  group_by(age)|>
+  mutate(prop = (n / sum(n)))
+by_age
+```
+```{r}
+by_age |>
+  ggplot() + 
+  geom_line(aes(x = age, y = prop, 
+                color = fct_ reorder2(marital, age, prop)))
+```
+
+# change the levels 
+
+```{r}
+gss_cat |>
+  mutate(partyid = fct_recode(partyid, 
+                              "Republican, strong", "strong republican", "Republican, weak" = "Not str republican", "Indepdent, near rep" = "Ind near rep", "Indepdendent, near dem" ))
+```
+ Wasn't able to finish
+ 
+```{r}
+ggs_cat |>
+  mutate(partyid = fct_collapse(partyid, "other" = c("No answer", "Dont know", "Other party"), 
+              "rep" = c("Strong republican", "Not str republican"))) |>
+  count(partyid)
+```
+ 

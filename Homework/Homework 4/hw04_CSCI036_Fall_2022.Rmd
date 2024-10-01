@@ -1,0 +1,491 @@
+---
+title: 'Homework 04 CSCI 036 Solutions'
+author: 'Lucas Welch'
+output: 
+  html_document:
+    css:  ../homework-style.css
+  pdf_document:
+    includes:
+      in_header:  "../homework-style.tex"
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+#Color Format
+colFmt = function(x,color){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\textcolor{",color,"}{",x,"}",sep="")
+  else if(outputFormat == 'html')
+    paste("<font color='",color,"'>",x,"</font>",sep="")
+  else
+    x
+}
+#Box Format
+boxFmt = function(x){
+  outputFormat = opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\framebox{\\hspace*{1em} ", x, "}")
+  else if(outputFormat == 'html')
+    paste("<span class=\"boxed\">", x , "</span>")
+  else
+    x
+}
+library(tidyverse)
+```
+
+Due:  Friday, 2022-09-30
+
+# Instructions
+
+Please box your answers.  For numerical answers, this can be done using something like \( \boxed{34} \).  For text answers, this can be done using something like \( \boxed{\text{My answer}} \).   The output of a code chunk is automatically boxed, so no need to do more.
+
+
+
+\newpage
+
+::::: {.problem data-latex=""}
+
+a. What function do you use to draw a blank canvas in the tidyverse?
+
+b. What function do you use to add a set of points to a canvas?
+
+c. What function do you use to add lines connecting \( (x, y) \) values to a canvas?
+:::::
+
+:::: {.solution data-latex=""}
+
+a. 
+\( \boxed{\text{ggplot}} \)
+b. 
+\( \boxed{\text{geom_point}} \)
+c. 
+\( \boxed{\text{geom_smooth}} \)
+
+
+::::
+
+
+\newpage
+
+:::: {.problem data-latex=""}
+
+Consider the `cars` data set that is built in to R.  
+
+a. Create a new data set based on `cars` that has a column `ratio` that is the ratio between the speed of the car and the stopping distance of the car.  
+
+b. Create a scatter plot of `ratio` versus `speed`.
+
+c. Add a least squares line fit to the plot.
+
+::::
+
+:::: {.solution data-latex=""}
+
+```{r}
+cars 
+```
+
+
+a. 
+```{r}
+cars2 <- cars |>
+  mutate(ratio = speed/dist)
+```
+b. 
+```{r}
+g1 <- 
+  cars2 |>
+  ggplot(aes(x = ratio, y = speed)) +
+  geom_point()
+g1
+```
+
+c. 
+```{r}
+g1 <- 
+  cars2 |>
+  ggplot(aes(x = ratio, y = speed)) +
+  geom_point() +
+  geom_smooth()
+g1
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""}  
+Consider the built in data set `USArrests`.  
+
+a. Using the help, what does the variable `Assault` measure in the data set?
+b. Create a scatterplot of Murder arrests versus Assault arrests.
+c. Add a loess line to your scatterplot.
+:::::
+
+:::: {.solution data-latex=""}
+
+a. 
+\( \boxed{\text{numeric Assault arrests(per 100,000)}} \)
+
+b. 
+```{r}
+g1 <- 
+  USArrests |>
+  ggplot(aes(x = Murder, y = Assault)) +
+  geom_point()
+g1
+```
+
+c. 
+```{r}
+g1 <- USArrests |> 
+  ggplot(aes(x = Murder, y = Assault)) +
+  geom_point()+
+  geom_smooth(method = "loess")
+g1 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+:::: 
+
+
+\newpage
+
+::::: {.problem data-latex=""} 
+Consider the following tibble
+```{r}
+x <- 1:10
+y <- x^2
+df <- tibble(x = x, y = y)
+```
+If we plot this tibble using `geom_line`, the default axis values are set automatically by default.
+
+```{r, fig.height = 3, fig.width = 3}
+ggplot(df) + geom_line(aes(x, y), color = "blue")
+```
+
+a. Use the `coord_cartesian` function to restrict the y values from 10 to 50.
+
+b. In the previous part the `ylim` parameter inside the `coord_cartesian` function was used to set the limits.  It turns out that [ggplot2]{class=PackageName] has a *separate* function also called [ylim]{class=KeywordTok}.  Use `?ylim` to see help and some examples.  In this part, use the `ylim` function to restrict the y values from 10 to 50 in your plot.
+:::::
+
+:::: {.solution}
+
+
+a. 
+```{r}
+ggplot(df) + geom_line(aes(x, y), color = "blue") +
+  coord_cartesian(ylim = c(10,50))
+
+```
+
+b. 
+```{r}
+ggplot(df) + geom_line(aes(x, y), color = "blue") +ylim(10,50)
+```
+
+
+
+
+
+
+
+
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""} 
+This problem requires that you use data from the [maps]{class=PackageName} package.
+
+a. Plot a map of the state of Iowa using the correct aspect ratio.
+
+b. The capital of Iowa is Des Moines, at 41.5868°, -93.6250° in latitude and longitude.  Place a point here at that location.
+:::::
+
+:::: {.solution data-latex=""}
+```{r}
+library(maps)
+```
+
+a. 
+```{r}
+Iowa <- map_data("state") |>
+  filter(region == "iowa")
+ggplot() + geom_polygon(data = Iowa, aes(x=long, y=lat), fill = "red", color = "black") 
+```
+
+b. 
+```{r}
+Iowa <- map_data("state") |>
+  filter(region == "iowa")
+ggplot() + geom_polygon(data = Iowa, aes(x=long, y=lat), fill = "blue", color = "black") +
+  geom_point(aes(x =  -93.6250, y = 41.5868), color = "green", size = 5)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""}  
+Consider the following plot, which creates a bar plot using `stat = "identity"`, and then puts the height of each bar as a number that sits above the bar.
+```{r, fig.height = 2, fig.width = 3}
+df <- enframe(c(30,15,5))
+ggplot(df, aes(x = name, y = value)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label = value), vjust = -1)
+```
+
+Change the y limits so that the label above the first bar is not cut off.
+::::::
+
+:::: {.solution}
+
+
+```{r}
+df <- enframe(c(30,15,5))
+ggplot(df, aes(x = name, y = value)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(aes(label = value), vjust = -1) + ylim(0,40)
+
+```
+
+
+
+
+
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""} 
+Consider the `starwars` data set from the `dplyr` package.  A *boxplot* gives a way of seeing where the bulk of values for a variable lie.  The line in the middle of the box is the sample median, and the width of the box depends on the spread in the variable.  Points outside the box indicate *outliers*, values very far away from the center.
+
+a. Create a boxplot of character height versus gender using [geom_boxplot]{class=KeywordTok}.
+
+b. Which gender tends to have a larger height, male or female.
+
+c. Which has greater variation, male or female?
+:::::
+
+:::: {.solution}
+
+a. 
+```{r}
+g1 <- ggplot(starwars, aes(height, gender)) +
+  geom_boxplot()
+g1
+  
+```
+b. 
+\( \boxed{\text{masculine}} \)
+
+c. 
+\( \boxed{\text{masculine}} \)
+
+
+
+
+
+
+
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""} 
+In the 2018 US Census American Community Survey (Table B03002), the following breakdown of the population of New York City by Race was given:
+
+```{r, warning = FALSE}
+library(tibble)
+df <- tibble(
+  race = c("White", "Black or African American", "Some Other Race", "Asian", "Two or More Races", "American Indian and Alaska Native", "Native Hawaiian and Other pacific Islander"),
+  pop = c(3603057, 2049418, 1277050, 1177700, 296074, 36075, 4339)
+)
+```
+
+This can be printed as a table as follows:
+```{r}
+knitr::kable(df)
+```
+
+Create a composition plot that is a horizontal bar that is colored with a legend according to the different races represented in the survey.
+:::::
+
+:::: {.solution data-latex=""}
+
+```{r}
+g1 <- ggplot(df) +
+  geom_bar(aes(x = "", y = pop, fill = race), stat="identity") +
+  coord_flip()
+g1 
+  
+```
+
+
+
+
+
+
+
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""}
+A *violin plot* is a method of displaying variation in a continuous variable that combines aspects of a boxplot and a histogram.  Consider the following plot of data from the `mtcars` dataset.
+
+```{r}
+ggplot(mtcars, aes(factor(cyl), mpg)) +
+  geom_violin()
+```
+
+Note that in the aesthetic we used `factor(cyl)` rather than just `cyl`.  This forces the plot to treat `cyl` as a categorical variable rather than a continuous one.
+
+The histogram for each factor is mirrored with vertical symmetry, giving it a look in a very general sense like a violin.  That is the reason behind the name.
+
+a. From this plot, what happens to miles per gallon as the number of cylinders increases?
+
+b. Create a violin plot for `mpg` versus `gear`.
+
+c. For which number of forward gears is the mpg the best?
+:::::
+
+:::: {.solution}
+
+a. 
+\(\boxed{\text{decreases}}\)
+b. 
+```{r}
+ggplot(mtcars, aes(factor(gear), mpg)) +
+  geom_violin()
+```
+
+c. 
+\(\boxed{\text{4}}\)
+
+
+
+
+
+::::
+
+\newpage
+
+::::: {.problem data-latex=""} 
+Consider the `starwars` data set from package `dplyr`.
+
+a. Create a scatter plot of the mass versus the height with a least squares prediction line.
+
+b. What observation has the outlier among mass?
+
+c. Repeat part a after removing this outlier.
+:::::
+
+:::: {.solution}
+
+a. 
+```{r}
+starwars |> ggplot(aes(x = mass, y = height)) +
+  geom_point() +
+  geom_smooth()
+```
+
+b. 
+\(\boxed{\text{Jabba Desilijic Tiure}}\)
+
+c. 
+```{r}
+starwars |> filter(mass<1000) |> ggplot(aes(x = mass, y = height)) +
+  geom_point() +
+  geom_smooth()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+::::

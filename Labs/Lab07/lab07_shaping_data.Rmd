@@ -1,0 +1,295 @@
+---
+title: 'Lab:  Shaping Data'
+author: "Lucas Welch"
+output: 
+  html_document:
+    css:  ../lab-style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 3, fig.width = 5)
+options(tibble.width = 62)
+```
+
+## Packages
+
+The packages needed for the lab today are:
+
+* [tidyverse]{class=PackageName}  This includes the following three parts.
+
+    * [tidyr]{class=PackageName} for reshaping data.
+
+    * [dplyr]{class=PackageName} for selecting columns and filtering rows.
+
+    * [readr]{class=PackageName} for reading in a file to a tibble.
+
+```{r, warning = FALSE, message = FALSE}
+library(tidyverse)
+```
+
+# What is tidy data?
+
+Remember that tidy data obeys three rules.
+
+1. Each row contains a single observation/data point, which itself can be composed of several entries/values.
+
+2. Each column contains a variable/factor/measurement.
+
+3. Each entry (row and column) contains a single entry/value.
+
+# The WHO TB dataset
+
+The dataset for this lab comes from the World Health Organization (WHO) and is their Global TB Report from 2014.  It is located in the variable `who` from the [tidyr]{class=PackageName} package.  Throughout, TB will be abbreviated TB.
+
+This data looks as follows.
+```{r}
+who
+```
+
+The data has 7\,240 rows and 60 columns.  There do appear to be many columns with names that are hard to parse.  
+
+The names of the columns can be found with the [names]{class=KeywordTok} function.
+```{r}
+who |> names()
+```
+
+
+What exactly does something like `new_sp_m014` mean?
+
+A *data dictionary* can help the user of a dataset find out.  The data dictionary for the WHO dataset indicates that the columns that start with `new` indicate instances of new TB cases.
+
+This is followed by three characters. These will be `_sp` for cases that can be detected by a pulmonary smear (so it stands for *smear positive*), `_sn` if it cannot be detected by a pulmonary smear (*smear negative*), `rel` for relapse, and `_ep` for extrapulmonary tuberculosis.
+
+After this comes an underscore `_`, then an `f` or `m` for female patients and male patients respectively.  Finally comes two numbers that indicate the age of the patients in the group.  For instance `3544` indicates that patients are from 35 to 44 years old.
+
+The [select]{class=KeywordTok} command and [starts_with]{class=KeywordTok} helper function can be used to find specific column names.  For instance, to find the female patients that are smear negative, use the following
+```{r}
+who |>
+  select(starts_with("new_sn_f")) |>
+  names()
+```
+
+
+
+:::: {.problem data-latex=""}
+Write code to find the column names that designate new cases of TB that are smear positive in male patients.  Assign this vector of character strings to `answer01`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+who |>
+  select(starts_with("new_sp_m")) |>
+  names() -> 
+  answer01
+```
+::::
+
+:::: {.problem data-latex=""}
+Using the `contains()` helper function, write code to find the column names that designate new cases of TB that are relapses.  Assign this vector of character strings to `answer02`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+who |>
+  select(contains("newrel_")) |>
+  names() -> 
+  answer02
+```
+::::
+
+:::: {.problem data-latex=""}
+Using the `ends_with()` helper function, write code to find the column names that designate cases in the 45 to 54 year old age group.  Assign this vector of character strings to `answer03`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+who |>
+  select(ends_with("4554")) |>
+  names() -> 
+  answer03
+```
+::::
+
+# Moving column names to a column
+
+Consider the following task:  Find out in total how many cases there were in each nation in each year.
+
+This task is difficult with the dataset in its current form.  This is because the type of TB case is in the column names, not under a column.  *Reshaping* the table into one with few columns and more rows would help.  
+
+The following code reshapes the data and places it into a variable `who_longer`.
+
+```{r}
+who |>
+  pivot_longer(new_sp_m014:newrel_f65, 
+               names_to = "case_type", 
+               values_to = "cases") ->
+  who_longer
+```
+
+The maximum number of cases in any country or year (from 1999 to 2013) can now be found as
+```{r}
+who_longer |>
+  summarize(max_cases = max(cases, na.rm = TRUE))
+```
+
+:::: {.problem data-latex=""}
+Write code that takes the `who_longer` dataset from above and finds the total number of TB cases in the dataset, called this `total_cases`.  Assign the resulting tibble to `answer04`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+who_longer |>
+  summarize(total_cases = sum(cases, na.rm = TRUE)) ->
+  answer04
+```
+
+::::
+
+
+:::: {.problem data-latex=""}
+Write code that takes the `who_longer` dataset from above and finds the total number of TB cases by year.  Place the total number of TB cases into a variable `total_cases`.  Assign the resulting tibble to `answer05`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+who_longer |>
+  group_by(year) |>
+  summarize(total_cases = sum(cases, na.rm = TRUE)) ->
+  answer05
+```
+
+::::
+
+:::: {.problem data-latex=""}
+Write code that takes the `who_longer` dataset from above and finds the total number of TB cases by country and by year.  Place the total number of TB cases into a variable `total_cases`.  Assign the resulting tibble to `answer06`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+who_longer |>
+  group_by(country, year) |>
+  summarize(total_cases = sum(cases, na.rm = TRUE)) ->
+  answer06
+```
+
+::::
+
+# Separation of entries
+
+The `cases_type` in `who_longer` is a useful variable, but it actually contains three pieces of information in each entry!  So to make this tidy data, it is helpful to separate out the information included in each string.
+
+Every case type starts with the characters `"new"` followed by three characters indicating the type of TB case.  If the `sep` parameter in [separate]{class=KeywordTok} is given a number, then it removes that number of characters.  So the first six characters can be lifted out using the following.
+
+```{r}
+who_longer |>
+  separate(case_type, 
+           into = c("case_type", "case_type_rest"),
+           sep = 6)
+```
+
+The underscore can be stripped away with another [separate]{class=KeywordTok} command, followed by the `"m"` or `"f"`.
+```{r}
+who_longer |>
+  separate(case_type, 
+           into = c("case_type", "case_type_rest"),
+           sep = 6) |>
+  separate(case_type_rest, 
+           into = c("underscore", "case_type_rest"),
+           sep = 1) |>
+  select(-underscore) |>
+  separate(case_type_rest, 
+           into = c("gender", "age-range"),
+           sep = 1) ->
+  who_separated
+```
+
+:::: {.problem data-latex=""}
+Write code that takes the `who_separated` dataset from above and finds the world-wide total number of TB cases by year and by gender.  Place the total number of TB cases into a variable `total_cases`.  Assign the resulting tibble to `answer07`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+who_separated |>
+  group_by(year, gender) |>
+  summarize(total_cases = sum(cases, na.rm = TRUE)) ->
+  answer07
+```
+
+# The Pew dataset on religion and income
+
+The Pew Research Center gathers data from a variety of sources.  One such dataset covers the religious affiliation for variable income levels.  The file `pew.txt` is a *tab-delimited file* where the values are all separated by tab characters.  Once placed into the directory with your lab .Rmd file, it can be loaded with
+```{r}
+pew <- read_delim("pew.txt", delim = "\t")
+```
+
+```{r}
+pew |> head()
+```
+
+Note that there is a character encoding error in the fifth observation.  This should be `"Don't know/refused"`.  This can be fixed with [mutate]{class=KeywordTok}, later on another method using the [stringr]{class=PackageName} package will be used.
+
+```{r}
+pew2 <- 
+  pew |>
+    mutate(religion = 
+      ifelse(religion == "Donâ€™t know/refused", 
+             "Don't know/refused", 
+             religion))
+```
+
+This replaces the string with the proper result if it matches the wrong one, or leaves it alone otherwise.
+
+:::: {.problem data-latex=""}
+Tidy `pew2` by putting the column names as entries under a new column `income`, the numbers in a new column `number_surveyed`, and removing all the old columns.  Put the result into `answer08`.
+
+To get an idea of what things will look like, the first four lines of `answer08` will be:
+
+```{r, echo = FALSE}
+tribble(
+  ~religion, ~income, ~number_surveyed,
+  "Agnostic", "<$10k", 27,
+  "Agnostic", "$10-20k",              34,
+  "Agnostic", "$20-30k",              60,
+  "Agnostic", "$30-40k",              81
+)
+```
+
+::::
+
+:::: {.solution data-latex=""}
+The following accomplishes this.
+```{r}
+pew2 |>
+  pivot_longer(2:11, 
+               names_to = "income", 
+               values_to = "number_surveyed") ->
+  answer08
+```
+::::
+
+:::: {.problem data-latex=""}
+Using `answer08`, find the total number of participants in the survey.  Save the result in a 1 by 1 tibble with column heading `total_participants`.  Assign this tibble to `answer09`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+answer09 <-
+  answer08 |>
+    summarize(total_participants = 
+                sum(number_surveyed, na.rm = TRUE))
+```
+::::
+
+:::: {.problem data-latex=""}
+Using `answer08`, find the total number of participants in the survey grouped by religion.  Call the column heading `total_participants`.  Assign this 18 by 2 tibble to `answer10`.
+::::
+
+:::: {.solution data-latex=""}
+```{r}
+answer10 <-
+  answer08 |>
+    group_by(religion) |>
+    summarize(total_participants = 
+                sum(number_surveyed, na.rm = TRUE))
+```
+::::
